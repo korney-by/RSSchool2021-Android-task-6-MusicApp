@@ -1,29 +1,19 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.di
 
 import com.korneysoft.rsschool2021_android_task_6_musicapp.MainActivity
-import dagger.Component
-import dagger.Module
-import dagger.Provides
-import android.app.Application
-import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
+import android.content.Context
 
+import dagger.*
 import javax.inject.Singleton
 
-
-
-
-@Component(modules = [AppModule::class])
+@Singleton
+@Component(modules = [DataModule::class])
 interface AppComponent {
+
+    @Component.Factory
+    interface Factory {
+        fun create(@BindsInstance context: Context): AppComponent
+    }
+
     fun inject(activity: MainActivity)
-    val tracks: Tracks
-}
-
-@Module
-object DataModule {
-
-    @Provides
-    fun provideTracks(
-
-    )
-
 }

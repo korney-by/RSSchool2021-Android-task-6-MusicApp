@@ -9,7 +9,6 @@
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal"
@@ -63,7 +62,7 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/cong_name"
+        android:id="@+id/track_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="24sp"
@@ -81,7 +80,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cong_name"
+        app:layout_constraintTop_toBottomOf="@+id/track_title"
         tools:srcCompat="@tools:sample/avatars" />
 
     <TextView
