@@ -40,6 +40,4 @@ class MainViewModel @Inject constructor() : ViewModel() {
             currentTrackNum -= 1
         }
     }
-
-
 }

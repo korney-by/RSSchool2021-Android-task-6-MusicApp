@@ -1,16 +1,12 @@
-package com.korneysoft.rsschool2021_android_task_6_musicapp
+package com.korneysoft.rsschool2021_android_task_6_musicapp.ui
 
-import android.annotation.SuppressLint
-import android.graphics.drawable.Drawable
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import android.text.method.ScrollingMovementMethod
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
+import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
+import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
 import javax.inject.Inject
@@ -31,6 +27,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // enable scrolling for textLog
+        binding.textLog.movementMethod = ScrollingMovementMethod()
 
         setListeners()
         registerObserverNumTrack()
@@ -46,11 +44,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun setListeners() {
         binding.playerNext.setOnClickListener {
-            toLog( "Click Next button")
+            toLog("Click Next button")
             model.nextTrack()
         }
         binding.playerPrevious.setOnClickListener {
-            toLog( "Click Previous button")
+            toLog("Click Previous button")
             model.previousTrack()
         }
     }

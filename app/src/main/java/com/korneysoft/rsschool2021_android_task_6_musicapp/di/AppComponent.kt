@@ -1,7 +1,7 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.di
 
-import com.korneysoft.rsschool2021_android_task_6_musicapp.MainActivity
 import android.content.Context
+import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 
 import dagger.*
 import javax.inject.Singleton
