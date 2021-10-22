@@ -2,10 +2,10 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.data
 
 import android.content.Context
 import com.google.gson.Gson
-import java.io.BufferedReader
-import javax.inject.Inject as Inject
 import com.google.gson.reflect.TypeToken
+import java.io.BufferedReader
 import java.lang.reflect.Type
+import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
@@ -25,7 +25,7 @@ class TracksFromAssetsFile @Inject constructor(private val context: Context) : T
     }
 
     private fun readAsset(fileName: String): String {
-        val result: String = try {
+        try {
             return context
                 .assets
                 .open(fileName)
@@ -34,7 +34,6 @@ class TracksFromAssetsFile @Inject constructor(private val context: Context) : T
         } catch (e: Exception) {
             return "[]"
         }
-        return result
     }
 
 }
