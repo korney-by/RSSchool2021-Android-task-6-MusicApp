@@ -23,7 +23,7 @@ class ProgressTracker(private val player: Player, private val positionListener: 
         val position = player.currentPosition
         positionListener.progress(position)
         if (!isPause) {
-            handler.postDelayed(this, 500)
+            handler.postDelayed(this, 100)
         }
     }
 

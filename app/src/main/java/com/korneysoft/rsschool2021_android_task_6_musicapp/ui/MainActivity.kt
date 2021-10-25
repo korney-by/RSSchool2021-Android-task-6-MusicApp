@@ -1,15 +1,14 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.ui
 
 
-
 import android.graphics.drawable.Drawable
-import android.opengl.Visibility
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
+import android.util.Log
 import android.view.View
+import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModel
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
@@ -17,6 +16,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
+import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
 import javax.inject.Inject
 
@@ -24,6 +24,7 @@ private const val TAG = "T6-MainActivity"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private var isSeekBarTrackingTouch = false
 
     @Inject
     lateinit var model: MainViewModel
@@ -38,9 +39,10 @@ class MainActivity : AppCompatActivity() {
         // enable scrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
-        setListeners()
+        setListenersPlayer()
+        setListenerSeekBar()
         registerObservers()
-
+        prefatorySetSeekBarSettings()
     }
 
     private fun registerObservers() {
@@ -54,17 +56,31 @@ class MainActivity : AppCompatActivity() {
             Observer {
                 toLog("Change isPlaying state: $it")
                 showButtonPlayPause(it)
+                setSeekBarDuration(model.getDuration())
+            })
+
+        model.progressChangedLiveData.observe(this,
+            Observer {
+                //toLog("Change Progress state: $it")
+                if (!isSeekBarTrackingTouch) {
+                    showProgressBar(it)
+                }
             })
     }
 
-    private fun setListeners() {
+    private fun setListenersPlayer() {
         binding.playerNext.setOnClickListener {
             toLog("Click Next button")
-            model.nextTrack()
+            if (model.nextTrack()) {
+                prefatorySetSeekBarSettings()
+            }
+
         }
         binding.playerPrevious.setOnClickListener {
             toLog("Click Previous button")
-            model.previousTrack()
+            if (model.previousTrack()) {
+                prefatorySetSeekBarSettings()
+            }
         }
         binding.playerPlay.setOnClickListener {
             toLog("Click Play button")
@@ -80,20 +96,73 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showButtonPlayPause(isPlaying:Boolean){
-        if (isPlaying){
-            binding.playerPlay.visibility= View.GONE
-            binding.playerPause.visibility= View.VISIBLE
-        }else{
-            binding.playerPlay.visibility= View.VISIBLE
-            binding.playerPause.visibility= View.GONE
+    private fun setListenerSeekBar() {
+        binding.playSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                playSeekBar: SeekBar?,
+                progress: Int,
+                fromUser: Boolean
+            ) {
+                setSeekBarPosition(progress.toLong())
+            }
+
+            override fun onStartTrackingTouch(playSeekBar: SeekBar?) {
+                isSeekBarTrackingTouch = true
+            }
+
+            override fun onStopTrackingTouch(playSeekBar: SeekBar?) {
+                playSeekBar?.let {
+                    model.seekToPositionPlayer(it.progress.toLong())
+                    isSeekBarTrackingTouch = false
+                }
+            }
+        })
+    }
+
+    private fun showButtonPlayPause(isPlaying: Boolean) {
+        if (isPlaying) {
+            binding.playerPlay.visibility = View.GONE
+            binding.playerPause.visibility = View.VISIBLE
+        } else {
+            binding.playerPlay.visibility = View.VISIBLE
+            binding.playerPause.visibility = View.GONE
         }
+    }
+
+    private fun prefatorySetSeekBarSettings() {
+        setSeekBarPosition(0)
+        model.currentTrack?.let {
+            setSeekBarDuration(it.duration)
+        } ?: setSeekBarDuration(0)
+    }
+
+    private fun setSeekBarPosition(position: Long) {
+        binding.playPosition.text = msecToTime(position.toLong())
+    }
+
+    private fun setSeekBarDuration(duration: Long) {
+        var applyDuration = 0L
+        if (duration > 0) {
+            applyDuration = duration
+        }
+        binding.playSeekBar.max = applyDuration.toInt()
+
+        //Log.d(TAG, "setSeekBarDuration - $applyDuration")
+        binding.playDuration.text = msecToTime(applyDuration)
     }
 
     private fun showInfo() {
         model.currentTrack?.let { track ->
             binding.trackTitle.text = track.title
             showCover(track.bitmapUri)
+        }
+    }
+
+    private fun showProgressBar(progress: Long) {
+        val progressView = progress.toInt()
+        Log.d(TAG, "showProgressBar MAPPING - $progressView")
+        if (progressView != binding.playSeekBar.progress) {
+            binding.playSeekBar.progress = progressView
         }
     }
 

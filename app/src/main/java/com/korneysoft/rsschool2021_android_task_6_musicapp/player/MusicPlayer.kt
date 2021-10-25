@@ -110,6 +110,10 @@ class MusicPlayer @Inject constructor(private val context: Context) {
         }
     }
 
+    fun seekToPosition(position: Long){
+        exoPlayer?.seekTo(position)
+    }
+
     private fun playbackStateListener() = object : Player.Listener {
 
         override fun onPlaybackStateChanged(playbackState: Int) {

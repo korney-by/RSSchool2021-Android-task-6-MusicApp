@@ -1,16 +1,15 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel
 
-import android.util.Log
+//import androidx.test.core.app.ApplicationProvider.getApplicationContext
+
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.MusicPlayer
 import javax.inject.Inject
 import javax.inject.Singleton
-//import androidx.test.core.app.ApplicationProvider.getApplicationContext
-
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.MusicPlayer
 
 private const val TAG = "T6-MainViewModel"
 
@@ -37,6 +36,9 @@ class MainViewModel @Inject constructor() : ViewModel() {
     private val _isPlayingChangedLiveData = MutableLiveData(false)
     val isPlayingChangedLiveData: LiveData<Boolean> get() = _isPlayingChangedLiveData
 
+    private val _progressChangedLiveData = MutableLiveData(0.toLong())
+    val progressChangedLiveData: LiveData<Long> get() = _progressChangedLiveData
+
     val currentTrack: Track?
         get() {
             musicPlayer.setCallbackPlayingStateChanged { onIsPlayingStateChanged() }
@@ -57,21 +59,26 @@ class MainViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun onProgressChanged(position: Long) {
-        Log.d(TAG, "Position: ${position}/${musicPlayer.duration}")
+        _progressChangedLiveData.value = position
+        // Log.d(TAG, "Position: ${position}/${musicPlayer.duration}  -  $viewPosition")
     }
 
-    fun nextTrack() {
+    fun nextTrack(): Boolean {
         if (currentTrackNum < tracks.list.size - 1) {
             currentTrackNum += 1
             if (musicPlayer.isPlaying == true) playPlayer()
+            return true
         }
+        return false
     }
 
-    fun previousTrack() {
+    fun previousTrack(): Boolean {
         if (currentTrackNum > 0) {
             currentTrackNum -= 1
             if (musicPlayer.isPlaying) playPlayer()
+            return true
         }
+        return false
     }
 
     fun playPlayer() {
@@ -90,4 +97,19 @@ class MainViewModel @Inject constructor() : ViewModel() {
         musicPlayer.stop()
     }
 
+    fun seekToPositionPlayer(position: Long) {
+        musicPlayer.seekToPosition(position)
+    }
+
+    fun getDuration(): Long {
+        currentTrack?.let {
+            if (it.duration > 0 && musicPlayer.duration <= 0) {
+                return it.duration
+            }
+            if (musicPlayer.duration > 0) {
+                return musicPlayer.duration
+            }
+        }
+        return 0
+    }
 }
