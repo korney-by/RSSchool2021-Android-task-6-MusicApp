@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">RSSchool2021-Android-task-6-MusicApp</string>
     <string name="stop_button">Stop button</string>
-    <string name="play_pause_button">Play/Pause button</string>
+    <string name="play_button">Play button</string>
     <string name="previous_button">Previous button</string>
     <string name="next_button">Next button</string>
     <string name="cover">Cover</string>
+    <string name="pause_button">Pause button</string>
 </resources>

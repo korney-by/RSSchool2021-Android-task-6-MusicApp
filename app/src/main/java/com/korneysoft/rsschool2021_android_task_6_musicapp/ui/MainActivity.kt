@@ -3,17 +3,19 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.ui
 
 
 import android.graphics.drawable.Drawable
+import android.opengl.Visibility
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModel
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
-import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
 import javax.inject.Inject
@@ -30,7 +32,6 @@ class MainActivity : AppCompatActivity() {
         (application as MyApplication).appComponent.inject(this)
 
         super.onCreate(savedInstanceState)
-        //setContentView(R.layout.activity_main)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -38,14 +39,21 @@ class MainActivity : AppCompatActivity() {
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
         setListeners()
-        registerObserverNumTrack()
+        registerObservers()
+
     }
 
-    private fun registerObserverNumTrack() {
+    private fun registerObservers() {
         model.currentTrackLiveData.observe(this,
             Observer {
-                toLog("LiveData observer: $it")
+                toLog("Change track: $it")
                 showInfo()
+            })
+
+        model.isPlayingChangedLiveData.observe(this,
+            Observer {
+                toLog("Change isPlaying state: $it")
+                showButtonPlayPause(it)
             })
     }
 
@@ -57,6 +65,28 @@ class MainActivity : AppCompatActivity() {
         binding.playerPrevious.setOnClickListener {
             toLog("Click Previous button")
             model.previousTrack()
+        }
+        binding.playerPlay.setOnClickListener {
+            toLog("Click Play button")
+            model.playPlayer()
+        }
+        binding.playerPause.setOnClickListener {
+            toLog("Click Pause button")
+            model.pausePlayer()
+        }
+        binding.playerStop.setOnClickListener {
+            toLog("Click Stop button")
+            model.stopPlayer()
+        }
+    }
+
+    private fun showButtonPlayPause(isPlaying:Boolean){
+        if (isPlaying){
+            binding.playerPlay.visibility= View.GONE
+            binding.playerPause.visibility= View.VISIBLE
+        }else{
+            binding.playerPlay.visibility= View.VISIBLE
+            binding.playerPause.visibility= View.GONE
         }
     }
 

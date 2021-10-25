@@ -9,7 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TracksFromAssetsFile @Inject constructor(private val context: Context) : Tracks {
+data class TracksFromAssetsFile @Inject constructor(private val context: Context) : Tracks {
 
     override val list: List<Track>
 

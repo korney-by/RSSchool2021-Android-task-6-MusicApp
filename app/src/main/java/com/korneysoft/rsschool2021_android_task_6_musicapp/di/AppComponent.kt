@@ -2,13 +2,14 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.di
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.MusicPlayer
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 
 import dagger.*
 import javax.inject.Singleton
 
 @Singleton
-@Component(modules = [DataModule::class])
+@Component(modules = [DataModule::class, PlayerModule::class])
 interface AppComponent {
 
     @Component.Factory

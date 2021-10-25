@@ -1,14 +1,17 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.di
 
-import android.app.Service
+import android.content.Context
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.TracksFromAssetsFile
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.PlayerService
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.MusicPlayer
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 
 @Module
-abstract class DataModule {
-    @Binds
-    abstract fun provideTracks(tracks: TracksFromAssetsFile): Tracks
+class PlayerModule {
+    @Provides
+    fun provideTracks(context: Context): MusicPlayer {
+        return MusicPlayer(context)
+    }
 }

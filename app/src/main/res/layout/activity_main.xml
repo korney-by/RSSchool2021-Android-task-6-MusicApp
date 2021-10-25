@@ -27,15 +27,25 @@
             tools:layout_editor_absoluteY="16dp" />
 
         <ImageButton
-            android:id="@+id/player_play_pause"
+            android:id="@+id/player_play"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
-            android:contentDescription="@string/play_pause_button"
+            android:contentDescription="@string/play_button"
             android:minHeight="48dp"
-            app:srcCompat="@drawable/ic_baseline_play_arrow_24"
-            tools:layout_editor_absoluteX="68dp"
-            tools:layout_editor_absoluteY="11dp" />
+            android:visibility="visible"
+            app:srcCompat="@drawable/ic_baseline_play_arrow_24" />
+
+        <ImageButton
+            android:id="@+id/player_pause"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:contentDescription="@string/pause_button"
+            android:minHeight="48dp"
+            android:visibility="gone"
+            app:srcCompat="@drawable/ic_baseline_pause_24"
+            tools:visibility="visible" />
 
         <ImageButton
             android:id="@+id/player_stop"
@@ -44,9 +54,8 @@
             android:layout_margin="10dp"
             android:contentDescription="@string/stop_button"
             android:minHeight="48dp"
-            app:srcCompat="@drawable/ic_baseline_stop_24"
-            tools:layout_editor_absoluteX="127dp"
-            tools:layout_editor_absoluteY="9dp" />
+
+            app:srcCompat="@drawable/ic_baseline_stop_24" />
 
         <ImageButton
             android:id="@+id/player_next"
@@ -85,9 +94,9 @@
 
     <TextView
         android:id="@+id/text_log"
-        android:layout_margin="8dp"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_margin="8dp"
         android:gravity="start|bottom"
         android:scrollbars="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
