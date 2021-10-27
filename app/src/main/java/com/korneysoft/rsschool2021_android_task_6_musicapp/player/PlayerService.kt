@@ -25,6 +25,7 @@ import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.cache.*
@@ -33,6 +34,10 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 import javax.inject.Inject
+import com.google.android.exoplayer2.DefaultRenderersFactory
+import com.google.android.exoplayer2.DefaultRenderersFactory.ExtensionRendererMode
+import com.google.android.exoplayer2.DefaultLoadControl
+import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 
 
 private const val TAG = "PlayerService"
@@ -50,8 +55,6 @@ class PlayerService() : Service() {
     lateinit var tracks: Tracks
     //private val musicRepository: MusicRepository = MusicRepository()
 
-    private val NOTIFICATION_ID = 404
-    private val NOTIFICATION_DEFAULT_CHANNEL_ID = "default_channel"
     private val metadataBuilder = MediaMetadataCompat.Builder()
     private val stateBuilder = PlaybackStateCompat.Builder().setActions(
         PlaybackStateCompat.ACTION_PLAY
@@ -61,7 +64,7 @@ class PlayerService() : Service() {
                 or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
     )
-    private var mediaSession: MediaSessionCompat? = null
+    private lateinit var mediaSession: MediaSessionCompat
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusRequested = false
@@ -70,7 +73,10 @@ class PlayerService() : Service() {
     private var dataSourceFactory: DataSource.Factory? = null
 
     override fun onCreate() {
+        (application as MyApplication).appComponent.inject(this)
+
         super.onCreate()
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             @SuppressLint("WrongConstant") val notificationChannel = NotificationChannel(
                 NOTIFICATION_DEFAULT_CHANNEL_ID,
@@ -90,17 +96,17 @@ class PlayerService() : Service() {
                 .setAudioAttributes(audioAttributes)
                 .build()
         }
+
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+
+        val appContext = applicationContext
+        val activityIntent = Intent(appContext, MainActivity::class.java)
         mediaSession = MediaSessionCompat(this, "PlayerService").apply {
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
             }
             setCallback(mediaSessionCallback)
-        }
-        val appContext = applicationContext
-        val activityIntent = Intent(appContext, MainActivity::class.java)
-        mediaSession?.apply {
             setSessionActivity(
                 PendingIntent.getActivity(
                     appContext,
@@ -133,13 +139,19 @@ class PlayerService() : Service() {
 //        )
 //      exoPlayer!!.addListener(exoPlayerListener)
 
-        exoPlayer = SimpleExoPlayer.Builder(this)
+        @ExtensionRendererMode
+        val extensionRendererMode = DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+        val renderersFactory =
+            DefaultRenderersFactory(this).setExtensionRendererMode(extensionRendererMode);
+
+        exoPlayer = SimpleExoPlayer.Builder(this, renderersFactory)
+            .setTrackSelector(DefaultTrackSelector(this))
+            .setLoadControl(DefaultLoadControl.Builder().build())
             .build()
             .also { exoPlayer ->
                 exoPlayer.playWhenReady = true
                 exoPlayer.addListener(exoPlayerListener)
                 exoPlayer.prepare()
-
             }
 
 //        val httpDataSourceFactory: DataSource.Factory = OkHttpDataSourceFactory(
@@ -197,13 +209,19 @@ class PlayerService() : Service() {
                         }
                         if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
                     }
+
+                    // Указываем, что наше приложение теперь активный плеер и кнопки
+                    // на окне блокировки должны управлять именно нами
                     mediaSession!!.isActive = true // Сразу после получения фокуса
+
                     registerReceiver(
                         becomingNoisyReceiver,
                         IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
                     )
                     exoPlayer!!.playWhenReady = true
                 }
+
+                // Сообщаем новое состояние
                 mediaSession!!.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PLAYING,
@@ -283,15 +301,16 @@ class PlayerService() : Service() {
             }
 
             private fun updateMetadataFromTrack(track: Track) {
-                val theBitmap: Bitmap = Glide
-                    .with(applicationContext)
-                    .asBitmap()
-                    .load(track.bitmapUri)
-                    .submit()
-                    .get()
+
+//                val theBitmap: Bitmap = Glide
+//                    .with(applicationContext)
+//                    .asBitmap()
+//                    .load(track.bitmapUri)
+//                    .submit()
+//                    .get()
 
                 metadataBuilder.apply {
-                    putBitmap(MediaMetadataCompat.METADATA_KEY_ART, theBitmap)
+                    //putBitmap(MediaMetadataCompat.METADATA_KEY_ART, theBitmap)
                     putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.title)
                     putString(MediaMetadataCompat.METADATA_KEY_ALBUM, track.artist)
                     putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.artist)
@@ -335,13 +354,13 @@ class PlayerService() : Service() {
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {}
     }
 
-    override fun onBind(intent: Intent): IBinder? {
+    override fun onBind(intent: Intent): IBinder {
         return PlayerServiceBinder()
     }
 
     inner class PlayerServiceBinder() : Binder() {
         val mediaSessionToken: MediaSessionCompat.Token
-            get() = mediaSession!!.sessionToken
+            get() = mediaSession.sessionToken
     }
 
     private fun refreshNotificationAndForegroundStatus(playbackState: Int) {
@@ -361,11 +380,12 @@ class PlayerService() : Service() {
     }
 
     private fun getNotification(playbackState: Int): Notification {
-        val builder: NotificationCompat.Builder = MediaStyleHelper.from(this, mediaSession)
+        val builder: NotificationCompat.Builder =
+            MediaStyleHelper.from(this, mediaSession!!, NOTIFICATION_DEFAULT_CHANNEL_ID)
         builder.addAction(
             NotificationCompat.Action(
                 android.R.drawable.ic_media_previous,
-                getString(R.string.previous),
+                getString(R.string.previous_button),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this,
                     PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
@@ -375,7 +395,7 @@ class PlayerService() : Service() {
         if (playbackState == PlaybackStateCompat.STATE_PLAYING) builder.addAction(
             NotificationCompat.Action(
                 android.R.drawable.ic_media_pause,
-                getString(R.string.pause),
+                getString(R.string.pause_button),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this,
                     PlaybackStateCompat.ACTION_PLAY_PAUSE
@@ -384,7 +404,7 @@ class PlayerService() : Service() {
         ) else builder.addAction(
             NotificationCompat.Action(
                 android.R.drawable.ic_media_play,
-                getString(R.string.play),
+                getString(R.string.play_button),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this,
                     PlaybackStateCompat.ACTION_PLAY_PAUSE
@@ -394,7 +414,7 @@ class PlayerService() : Service() {
         builder.addAction(
             NotificationCompat.Action(
                 android.R.drawable.ic_media_next,
-                getString(R.string.next),
+                getString(R.string.next_button),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this,
                     PlaybackStateCompat.ACTION_SKIP_TO_NEXT
@@ -414,14 +434,20 @@ class PlayerService() : Service() {
                 .setMediaSession(mediaSession!!.sessionToken)
         ) // setMediaSession требуется для Android Wear
         builder.setSmallIcon(R.mipmap.ic_launcher)
-        builder.color = ContextCompat.getColor(
-            this,
-            R.color.colorPrimaryDark
-        ) // The whole background (in MediaStyle), not just icon background
+
+        // The whole background (in MediaStyle), not just icon background
+        builder.color = ContextCompat.getColor(this, R.color.design_default_color_primary_dark)
+
         builder.setShowWhen(false)
         builder.priority = NotificationCompat.PRIORITY_HIGH
         builder.setOnlyAlertOnce(true)
-        builder.setChannelId(NOTIFICATION_DEFAULT_CHANNEL_ID)
+//        builder.setChannelId(NOTIFICATION_DEFAULT_CHANNEL_ID)
         return builder.build()
+    }
+
+    companion object {
+        private const val NOTIFICATION_ID = 404
+        private const val NOTIFICATION_DEFAULT_CHANNEL_ID = "default_channel"
+
     }
 }

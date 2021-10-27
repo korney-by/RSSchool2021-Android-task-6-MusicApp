@@ -1,8 +1,15 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.ui
 
 
+import android.content.ComponentName
+import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.IBinder
+import android.os.RemoteException
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
 import android.view.View
@@ -16,6 +23,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.PlayerService
 import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
 import javax.inject.Inject
@@ -25,6 +33,11 @@ private const val TAG = "T6-MainActivity"
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var isSeekBarTrackingTouch = false
+
+    private var playerServiceBinder: PlayerService.PlayerServiceBinder? = null
+    private var mediaController: MediaControllerCompat? = null
+    private lateinit var callback: MediaControllerCompat.Callback
+    private lateinit var serviceConnection: ServiceConnection
 
     @Inject
     lateinit var model: MainViewModel
@@ -36,13 +49,60 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        callback = object : MediaControllerCompat.Callback() {
+            override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
+                //if (state == null) return
+                val playing = (state.state == PlaybackStateCompat.STATE_PLAYING)
+                binding.playerPlay.isEnabled = !playing
+                binding.playerPause.isEnabled = playing
+                binding.playerStop.isEnabled = playing
+            }
+        }
+
+        serviceConnection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder) {
+                playerServiceBinder = service as PlayerService.PlayerServiceBinder
+                playerServiceBinder?.let { playerServiceBinder ->
+                    try {
+                        mediaController = MediaControllerCompat(
+                            this@MainActivity,
+                            playerServiceBinder.mediaSessionToken
+                        ).apply {
+                            registerCallback(callback)
+                            callback.onPlaybackStateChanged(playbackState)
+                        }
+                    } catch (e: RemoteException) {
+                        mediaController = null
+                    }
+                }
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                playerServiceBinder = null
+                mediaController?.unregisterCallback(callback)
+                mediaController = null
+            }
+        }
+
+        bindService(Intent(this, PlayerService::class.java), serviceConnection, BIND_AUTO_CREATE)
+
         // enable scrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
-        setListenersPlayer()
+        //setListenersPlayer()
+        setListenersPlayerService()
+
         setListenerSeekBar()
         registerObservers()
         prefatorySetSeekBarSettings()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        playerServiceBinder = null
+        mediaController?.unregisterCallback(callback)
+        mediaController = null
+        unbindService(serviceConnection)
     }
 
     private fun registerObservers() {
@@ -68,13 +128,37 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
+
+    private fun setListenersPlayerService() {
+        binding.playerNext.setOnClickListener {
+            toLog("Click Next button")
+            mediaController?.transportControls?.skipToNext()
+        }
+        binding.playerPrevious.setOnClickListener {
+            toLog("Click Previous button")
+            mediaController?.transportControls?.skipToPrevious()
+        }
+        binding.playerPlay.setOnClickListener {
+            toLog("Click Play button")
+            mediaController?.transportControls?.play()
+        }
+        binding.playerPause.setOnClickListener {
+            toLog("Click Pause button")
+            mediaController?.transportControls?.pause()
+        }
+        binding.playerStop.setOnClickListener {
+            toLog("Click Stop button")
+            mediaController?.transportControls?.stop()
+        }
+    }
+
+
     private fun setListenersPlayer() {
         binding.playerNext.setOnClickListener {
             toLog("Click Next button")
             if (model.nextTrack()) {
                 prefatorySetSeekBarSettings()
             }
-
         }
         binding.playerPrevious.setOnClickListener {
             toLog("Click Previous button")
@@ -97,7 +181,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setListenerSeekBar() {
-        binding.playSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        binding.playSeekBar.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(
                 playSeekBar: SeekBar?,
                 progress: Int,
