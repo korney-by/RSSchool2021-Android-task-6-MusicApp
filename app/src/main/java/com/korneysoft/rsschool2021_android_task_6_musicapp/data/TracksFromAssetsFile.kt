@@ -13,6 +13,24 @@ data class TracksFromAssetsFile @Inject constructor(private val context: Context
 
     override val list: List<Track>
 
+    private val maxIndex: Int get() = list.size - 1
+    private var currentIndex = 0
+
+    override val current: Track
+        get() = list[currentIndex]
+
+    override val next: Track
+        get() {
+            currentIndex = if (currentIndex == maxIndex) 0 else currentIndex.plus(1)
+            return current
+        }
+
+    override val previous: Track
+        get(){
+            currentIndex = if (currentIndex == 0) maxIndex else currentIndex.minus(1)
+            return current
+        }
+
     init {
         list = initListOfTrack()
     }

@@ -64,4 +64,7 @@ dependencies {
     implementation 'com.google.android.exoplayer:exoplayer-core:2.15.1'
     implementation 'com.google.android.exoplayer:exoplayer-dash:2.15.1'
     implementation 'com.google.android.exoplayer:exoplayer-ui:2.15.1'
+
+    implementation 'com.squareup.okhttp3:okhttp:3.14.2'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.15.1'
 }

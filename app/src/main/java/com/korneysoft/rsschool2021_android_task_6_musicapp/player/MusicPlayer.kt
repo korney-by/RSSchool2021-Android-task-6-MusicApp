@@ -46,8 +46,6 @@ class MusicPlayer @Inject constructor(private val context: Context) {
                 }
             })
         }
-
-
     }
 
     fun play(uri: String) {
@@ -112,6 +110,7 @@ class MusicPlayer @Inject constructor(private val context: Context) {
 
     fun seekToPosition(position: Long){
         exoPlayer?.seekTo(position)
+        playbackPosition=position
     }
 
     private fun playbackStateListener() = object : Player.Listener {
@@ -143,7 +142,7 @@ class MusicPlayer @Inject constructor(private val context: Context) {
             // if loading is canceled, but it not isPlaying then loading - False
             if (!isLoading) {
                 onIsPlayingChangedCallback?.invoke()
-                if (!isPlaying) {
+                if (!isPlaying ) {
                     playingUri = null
                 }
             }
