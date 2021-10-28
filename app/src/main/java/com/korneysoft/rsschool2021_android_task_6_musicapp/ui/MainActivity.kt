@@ -50,8 +50,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         callback = object : MediaControllerCompat.Callback() {
-            override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
-                //if (state == null) return
+            override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+                state ?: return
                 val playing = (state.state == PlaybackStateCompat.STATE_PLAYING)
                 binding.playerPlay.isEnabled = !playing
                 binding.playerPause.isEnabled = playing
@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         serviceConnection = object : ServiceConnection {
+
             override fun onServiceConnected(name: ComponentName?, service: IBinder) {
                 playerServiceBinder = service as PlayerService.PlayerServiceBinder
                 playerServiceBinder?.let { playerServiceBinder ->
@@ -67,12 +68,14 @@ class MainActivity : AppCompatActivity() {
                         mediaController = MediaControllerCompat(
                             this@MainActivity,
                             playerServiceBinder.mediaSessionToken
-                        ).apply {
-                            registerCallback(callback)
-                            callback.onPlaybackStateChanged(playbackState)
+                        )
+                        mediaController?.let { mediaController ->
+                            mediaController.registerCallback(callback)
+                            callback.onPlaybackStateChanged(mediaController.playbackState)
                         }
+
                     } catch (e: RemoteException) {
-                        mediaController = null
+                        mediaController=null
                     }
                 }
             }

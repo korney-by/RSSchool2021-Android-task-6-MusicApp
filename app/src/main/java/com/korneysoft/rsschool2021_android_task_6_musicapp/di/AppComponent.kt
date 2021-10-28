@@ -2,7 +2,6 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.di
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.MusicPlayer
 import com.korneysoft.rsschool2021_android_task_6_musicapp.player.PlayerService
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 

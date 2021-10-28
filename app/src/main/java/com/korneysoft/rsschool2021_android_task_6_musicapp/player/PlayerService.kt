@@ -64,13 +64,15 @@ class PlayerService() : Service() {
                 or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
     )
+    private lateinit var audioManager: AudioManager
     private lateinit var mediaSession: MediaSessionCompat
-    private var audioManager: AudioManager? = null
+    private lateinit var exoPlayer: SimpleExoPlayer
+
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusRequested = false
-    private var exoPlayer: SimpleExoPlayer? = null
-    private var extractorsFactory: ExtractorsFactory? = null
-    private var dataSourceFactory: DataSource.Factory? = null
+
+//    private var extractorsFactory: ExtractorsFactory? = null
+//    private var dataSourceFactory: DataSource.Factory? = null
 
     override fun onCreate() {
         (application as MyApplication).appComponent.inject(this)
@@ -116,28 +118,19 @@ class PlayerService() : Service() {
                 )
             )
         }
-// this is everything for API < 21
-//        val mediaButtonIntent = Intent(
-//            Intent.ACTION_MEDIA_BUTTON, null, appContext,
-//            MediaButtonReceiver::class.java
-//        )
-//        mediaSession!!.setMediaButtonReceiver(
-//            PendingIntent.getBroadcast(
-//                appContext,
-//                0,
-//                mediaButtonIntent,
-//                0
-//            )
-//        )
-//
-//        exoPlayer = ExoPlayerFactory.newSimpleInstance(
-//
-//            this,
-//            DefaultRenderersFactory(this),
-//            DefaultTrackSelector(),
-//            DefaultLoadControl()
-//        )
-//      exoPlayer!!.addListener(exoPlayerListener)
+
+        val mediaButtonIntent = Intent(
+            Intent.ACTION_MEDIA_BUTTON, null, appContext,
+            MediaButtonReceiver::class.java
+        )
+        mediaSession.setMediaButtonReceiver(
+            PendingIntent.getBroadcast(
+                appContext,
+                0,
+                mediaButtonIntent,
+                0
+            )
+        )
 
         @ExtensionRendererMode
         val extensionRendererMode = DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
@@ -148,11 +141,10 @@ class PlayerService() : Service() {
             .setTrackSelector(DefaultTrackSelector(this))
             .setLoadControl(DefaultLoadControl.Builder().build())
             .build()
-            .also { exoPlayer ->
-                exoPlayer.playWhenReady = true
-                exoPlayer.addListener(exoPlayerListener)
-                exoPlayer.prepare()
-            }
+
+        exoPlayer.addListener(exoPlayerListener)
+
+
 
 //        val httpDataSourceFactory: DataSource.Factory = OkHttpDataSourceFactory(
 //            OkHttpClient(),
@@ -178,8 +170,8 @@ class PlayerService() : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaSession?.release()
-        exoPlayer?.release()
+        mediaSession.release()
+        exoPlayer.release()
     }
 
     private val mediaSessionCallback: MediaSessionCompat.Callback =
@@ -188,20 +180,22 @@ class PlayerService() : Service() {
             var currentState = PlaybackStateCompat.STATE_STOPPED
 
             override fun onPlay() {
-                if (!exoPlayer!!.playWhenReady) {
+                if (!exoPlayer.playWhenReady) {
                     startService(Intent(applicationContext, PlayerService::class.java))
                     val track = tracks.current
 
                     updateMetadataFromTrack(track)
                     prepareToPlay(track.trackUri)
+
                     if (!audioFocusRequested) {
                         audioFocusRequested = true
+
                         val audioFocusResult: Int
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             audioFocusResult =
-                                audioManager!!.requestAudioFocus((audioFocusRequest)!!)
+                                audioManager.requestAudioFocus((audioFocusRequest)!!)
                         } else {
-                            audioFocusResult = audioManager!!.requestAudioFocus(
+                            audioFocusResult = audioManager.requestAudioFocus(
                                 audioFocusChangeListener,
                                 AudioManager.STREAM_MUSIC,
                                 AudioManager.AUDIOFOCUS_GAIN
@@ -212,17 +206,17 @@ class PlayerService() : Service() {
 
                     // Указываем, что наше приложение теперь активный плеер и кнопки
                     // на окне блокировки должны управлять именно нами
-                    mediaSession!!.isActive = true // Сразу после получения фокуса
+                    mediaSession.isActive = true // Сразу после получения фокуса
 
                     registerReceiver(
                         becomingNoisyReceiver,
                         IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
                     )
-                    exoPlayer!!.playWhenReady = true
+                    exoPlayer.playWhenReady = true
                 }
 
                 // Сообщаем новое состояние
-                mediaSession!!.setPlaybackState(
+                mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PLAYING,
                         PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
@@ -234,11 +228,11 @@ class PlayerService() : Service() {
             }
 
             override fun onPause() {
-                if (exoPlayer!!.playWhenReady) {
-                    exoPlayer!!.playWhenReady = false
+                if (exoPlayer.playWhenReady) {
+                    exoPlayer.playWhenReady = false
                     unregisterReceiver(becomingNoisyReceiver)
                 }
-                mediaSession!!.setPlaybackState(
+                mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PAUSED,
                         PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
@@ -250,20 +244,21 @@ class PlayerService() : Service() {
             }
 
             override fun onStop() {
-                if (exoPlayer!!.playWhenReady) {
-                    exoPlayer!!.playWhenReady = false
+                if (exoPlayer.playWhenReady) {
+                    exoPlayer.playWhenReady = false
                     unregisterReceiver(becomingNoisyReceiver)
                 }
+
                 if (audioFocusRequested) {
                     audioFocusRequested = false
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        audioManager!!.abandonAudioFocusRequest((audioFocusRequest)!!)
+                        audioManager.abandonAudioFocusRequest((audioFocusRequest)!!)
                     } else {
-                        audioManager!!.abandonAudioFocus(audioFocusChangeListener)
+                        audioManager.abandonAudioFocus(audioFocusChangeListener)
                     }
                 }
-                mediaSession!!.isActive = false
-                mediaSession!!.setPlaybackState(
+                mediaSession.isActive = false
+                mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_STOPPED,
                         PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
@@ -293,7 +288,8 @@ class PlayerService() : Service() {
                 if (uri != currentUri) {
                     currentUri = uri
                     val mediaItem = MediaItem.fromUri(uri)
-                    exoPlayer?.apply {
+
+                    exoPlayer.run {
                         setMediaItem(mediaItem)
                         prepare()
                     }
@@ -315,7 +311,7 @@ class PlayerService() : Service() {
                     putString(MediaMetadataCompat.METADATA_KEY_ALBUM, track.artist)
                     putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.artist)
                     putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
-                    mediaSession!!.setMetadata(this.build())
+                    mediaSession.setMetadata(this.build())
                 }
             }
         }
@@ -336,6 +332,7 @@ class PlayerService() : Service() {
             }
         }
     }
+
     private val exoPlayerListener: Player.Listener = object : Player.Listener {
         override fun onTracksChanged(
             trackGroups: TrackGroupArray,
@@ -344,6 +341,7 @@ class PlayerService() : Service() {
         }
 
         override fun onLoadingChanged(isLoading: Boolean) {}
+
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             if (playWhenReady && playbackState == ExoPlayer.STATE_ENDED) {
                 mediaSessionCallback.onSkipToNext()
@@ -381,7 +379,7 @@ class PlayerService() : Service() {
 
     private fun getNotification(playbackState: Int): Notification {
         val builder: NotificationCompat.Builder =
-            MediaStyleHelper.from(this, mediaSession!!, NOTIFICATION_DEFAULT_CHANNEL_ID)
+            MediaStyleHelper.from(this, mediaSession, NOTIFICATION_DEFAULT_CHANNEL_ID)
         builder.addAction(
             NotificationCompat.Action(
                 android.R.drawable.ic_media_previous,
@@ -431,7 +429,7 @@ class PlayerService() : Service() {
                         PlaybackStateCompat.ACTION_STOP
                     )
                 )
-                .setMediaSession(mediaSession!!.sessionToken)
+                .setMediaSession(mediaSession.sessionToken)
         ) // setMediaSession требуется для Android Wear
         builder.setSmallIcon(R.mipmap.ic_launcher)
 
