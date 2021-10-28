@@ -15,7 +15,7 @@
         android:theme="@style/Theme.RSShcool2021Androidtask5Cats.DarkBlue">
 
         <service
-            android:name=".player.PlayerService"
+            android:name=".player.service.PlayerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />

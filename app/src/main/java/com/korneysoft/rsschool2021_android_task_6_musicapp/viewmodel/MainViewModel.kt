@@ -41,9 +41,10 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     val currentTrack: Track?
         get() {
-            musicPlayer.setCallbackPlayingStateChanged { onIsPlayingStateChanged() }
-            return if (currentTrackNum in tracks.list.indices) tracks.list[currentTrackNum]
-            else null
+            return tracks.current
+//            musicPlayer.setCallbackPlayingStateChanged { onIsPlayingStateChanged() }
+//            return if (currentTrackNum in tracks.list.indices) tracks.list[currentTrackNum]
+//            else null
         }
 
     private fun onIsPlayingStateChanged(value: Boolean? = null) {

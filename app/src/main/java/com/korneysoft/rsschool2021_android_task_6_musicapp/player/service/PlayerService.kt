@@ -1,4 +1,4 @@
-package com.korneysoft.rsschool2021_android_task_6_musicapp.player
+package com.korneysoft.rsschool2021_android_task_6_musicapp.player.service
 
 import android.annotation.SuppressLint
 import android.app.*
@@ -145,7 +145,6 @@ class PlayerService() : Service() {
         exoPlayer.addListener(exoPlayerListener)
 
 
-
 //        val httpDataSourceFactory: DataSource.Factory = OkHttpDataSourceFactory(
 //            OkHttpClient(),
 //            Util.getUserAgent(this, getString(R.string.app_name))
@@ -190,10 +189,12 @@ class PlayerService() : Service() {
                     if (!audioFocusRequested) {
                         audioFocusRequested = true
 
-                        val audioFocusResult: Int
+                        var audioFocusResult: Int = AudioManager.AUDIOFOCUS_REQUEST_FAILED
+                        @Suppress("DEPRECATION")
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            audioFocusResult =
-                                audioManager.requestAudioFocus((audioFocusRequest)!!)
+                            audioFocusRequest?.let { audioFocusRequest ->
+                                audioFocusResult = audioManager.requestAudioFocus(audioFocusRequest)
+                            }
                         } else {
                             audioFocusResult = audioManager.requestAudioFocus(
                                 audioFocusChangeListener,
@@ -251,8 +252,11 @@ class PlayerService() : Service() {
 
                 if (audioFocusRequested) {
                     audioFocusRequested = false
+                    @Suppress("DEPRECATION")
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        audioManager.abandonAudioFocusRequest((audioFocusRequest)!!)
+                        audioFocusRequest?.let { audioFocusRequest ->
+                            audioManager.abandonAudioFocusRequest(audioFocusRequest)
+                        }
                     } else {
                         audioManager.abandonAudioFocus(audioFocusChangeListener)
                     }
