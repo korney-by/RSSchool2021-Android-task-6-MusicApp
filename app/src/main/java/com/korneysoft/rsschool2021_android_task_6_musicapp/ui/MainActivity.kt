@@ -34,10 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var isSeekBarTrackingTouch = false
 
-    private var playerServiceBinder: PlayerService.PlayerServiceBinder? = null
-    private var mediaController: MediaControllerCompat? = null
-    private val callback by lazy { createCallbackService() }
-    private val serviceConnection by lazy { createServiceConnection() }
+
 
     @Inject
     lateinit var model: MainViewModel
@@ -49,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        bindService(Intent(applicationContext, PlayerService::class.java), serviceConnection, BIND_AUTO_CREATE)
+    //    bindService(Intent(applicationContext, PlayerService::class.java), serviceConnection, BIND_AUTO_CREATE)
 
         // enable scrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
@@ -70,51 +67,8 @@ class MainActivity : AppCompatActivity() {
         unbindService(serviceConnection)
     }
 
-    private fun createCallbackService(): MediaControllerCompat.Callback {
-        return object : MediaControllerCompat.Callback() {
-            override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                state ?: return
-                val playing = (state.state == PlaybackStateCompat.STATE_PLAYING)
-                showButtonPlayPause(playing)
-                binding.playerStop.isEnabled = playing
-                if ((state.state == PlaybackStateCompat.STATE_SKIPPING_TO_NEXT) ||
-                    (state.state == PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS)){
-                    showInfo()
-                }
-            }
-        }
-    }
 
-    private fun createServiceConnection(): ServiceConnection {
-        return object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder) {
-                playerServiceBinder = service as PlayerService.PlayerServiceBinder
-                playerServiceBinder?.let { playerServiceBinder ->
-                    try {
-                        mediaController = MediaControllerCompat(
-                            //this@MainActivity,
-                            applicationContext,
-                            playerServiceBinder.mediaSessionToken
-                        )
-                        mediaController?.let { mediaController ->
-                            mediaController.registerCallback(callback)
-                            callback.onPlaybackStateChanged(mediaController.playbackState)
-                        }
 
-                    } catch (e: RemoteException) {
-                        mediaController = null
-                    }
-                }
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                playerServiceBinder = null
-                mediaController?.unregisterCallback(callback)
-                mediaController = null
-            }
-        }
-
-    }
 
     private fun registerObservers() {
         model.currentTrackLiveData.observe(this,

@@ -2,12 +2,17 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel
 
 //import androidx.test.core.app.ApplicationProvider.getApplicationContext
 
+import android.content.Intent
+import android.content.ServiceConnection
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
 import com.korneysoft.rsschool2021_android_task_6_musicapp.player.MusicPlayer
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.PlayerService
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.ServiceConnectionController
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,11 +21,15 @@ private const val TAG = "T6-MainViewModel"
 @Singleton
 class MainViewModel @Inject constructor() : ViewModel() {
 
-    @Inject
-    lateinit var tracks: Tracks
+//    @Inject
+//    lateinit var tracks: Tracks
+//
+//    @Inject
+//    lateinit var musicPlayer: MusicPlayer
 
     @Inject
-    lateinit var musicPlayer: MusicPlayer
+    lateinit var serviceConnectionController : ServiceConnectionController
+
 
     private var currentTrackNum = 0
         set(newValue) {
@@ -29,6 +38,10 @@ class MainViewModel @Inject constructor() : ViewModel() {
                 _currentTrackLiveData.value = newValue
             }
         }
+
+    init{
+
+    }
 
     private val _currentTrackLiveData = MutableLiveData(currentTrackNum)
     val currentTrackLiveData: LiveData<Int> get() = _currentTrackLiveData
