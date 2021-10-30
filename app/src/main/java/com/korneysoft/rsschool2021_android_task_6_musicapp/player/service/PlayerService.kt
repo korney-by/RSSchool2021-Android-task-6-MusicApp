@@ -41,6 +41,7 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
+import kotlinx.coroutines.internal.synchronized
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,7 +60,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                 or PlaybackStateCompat.ACTION_PLAY_PAUSE
                 or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
-                //or PlaybackStateCompat.ACTION_SEEK_TO
+        //or PlaybackStateCompat.ACTION_SEEK_TO
     )
     private lateinit var audioManager: AudioManager
     private lateinit var mediaSession: MediaSessionCompat
@@ -331,6 +332,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                     putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
                     mediaSession.setMetadata(this.build())
                 }
+
             }
 
             private fun asyncLoadBitmap(uri: String) {
@@ -343,29 +345,14 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                             transition: Transition<in Bitmap>?
                         ) {
                             if (tracks.current.bitmapUri == uri) {
-                                metadataBuilder.putBitmap(
-                                    MediaMetadataCompat.METADATA_KEY_ART,
-                                    resource
-                                )
-                                mediaSession.setMetadata(metadataBuilder.build())
-                                mediaSession.setPlaybackState(
-                                    stateBuilder.setState(
-                                        currentState,
-                                        exoPlayer.currentPosition,
-                                        1f
-                                    ).build()
-                                )
-
+                                metadataBuilder.apply {
+                                    putBitmap(MediaMetadataCompat.METADATA_KEY_ART, resource)
+                                    mediaSession.setMetadata(this.build())
+                                }
                             }
                         }
 
-
-                        override fun onLoadCleared(placeholder: Drawable?) {
-                            // this is called when imageView is cleared on lifecycle call or for
-                            // some other reason.
-                            // if you are referencing the bitmap somewhere else too other than this imageView
-                            // clear it here as you can no longer have the bitmap
-                        }
+                        override fun onLoadCleared(placeholder: Drawable?) {}
                     })
             }
         }
@@ -499,7 +486,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
     }
 
     companion object {
-        private const val NOTIFICATION_ID = 404
+        private const val NOTIFICATION_ID = 1
         private const val NOTIFICATION_DEFAULT_CHANNEL_ID = "default_channel"
 
     }

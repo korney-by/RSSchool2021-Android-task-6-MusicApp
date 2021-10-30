@@ -22,6 +22,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
+import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
 import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.PlayerService
 import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
@@ -260,6 +261,7 @@ class MainActivity : AppCompatActivity() {
     private fun showTrackInfo() {
         model.currentTrack?.let { track ->
             binding.trackTitle.text = track.title
+            binding.trackArtist.text = track.artist
             setSeekBarDuration(model.getDuration())
             showCover(track.bitmapUri)
         }
@@ -281,6 +283,8 @@ class MainActivity : AppCompatActivity() {
         val view = binding.trackCover
         Glide.with(view.context)
             .load(uri)
+            .placeholder(R.drawable.ic_baseline_image_24)
+            .error(R.drawable.ic_baseline_error_24)
             .centerCrop()
             //.error(R.drawable.ic_baseline_close_24)
             .listener(object : RequestListener<Drawable> {
