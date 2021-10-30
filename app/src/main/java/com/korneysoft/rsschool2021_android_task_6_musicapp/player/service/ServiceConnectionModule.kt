@@ -12,13 +12,10 @@ import dagger.Module
 import dagger.Provides
 
 @Module
-class ServiceModule {
+class ServiceConnectionModule {
 
     @Provides
     fun provideServiceConnection(context: Context): ServiceConnectionController {
         return ServiceConnectionController(context)
     }
-
-
-
 }

@@ -26,6 +26,7 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityM
 import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.PlayerService
 import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
+import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.PlayerControl
 import javax.inject.Inject
 
 private const val TAG = "T6-MainActivity"
@@ -34,10 +35,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var isSeekBarTrackingTouch = false
 
-
-
     @Inject
     lateinit var model: MainViewModel
+
+    private var playerControl: PlayerControl? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as MyApplication).appComponent.inject(this)
@@ -46,43 +47,51 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-    //    bindService(Intent(applicationContext, PlayerService::class.java), serviceConnection, BIND_AUTO_CREATE)
+        //    bindService(Intent(applicationContext, PlayerService::class.java), serviceConnection, BIND_AUTO_CREATE)
 
         // enable scrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
+        if (model is PlayerControl) {
+            playerControl = model
+        }
         //setListenersPlayer()
-        setListenersPlayerService()
+        setListenersPlayerControl()
 
         setListenerSeekBar()
-        //registerObservers()
+        registerObservers()
         prefatorySetSeekBarSettings()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        playerServiceBinder = null
-        mediaController?.unregisterCallback(callback)
-        mediaController = null
-        unbindService(serviceConnection)
+//        playerServiceBinder = null
+//        mediaController?.unregisterCallback(callback)
+//        mediaController = null
+//        unbindService(serviceConnection)
     }
 
 
-
-
     private fun registerObservers() {
+
+        model.playerEventLiveData.observe(this,
+            Observer {
+                playerStateApply(it)
+            })
+
+
         model.currentTrackLiveData.observe(this,
             Observer {
                 toLog("Change track: $it")
-                showInfo()
+                showTrackInfo()
             })
 
-        model.isPlayingChangedLiveData.observe(this,
-            Observer {
-                toLog("Change isPlaying state: $it")
-                showButtonPlayPause(it)
-                setSeekBarDuration(model.getDuration())
-            })
+//        model.isPlayingChangedLiveData.observe(this,
+//            Observer {
+//                toLog("Change isPlaying state: $it")
+//                //showButtonPlayPause(it)
+//                setSeekBarDuration(model.getDuration())
+//            })
 
         model.progressChangedLiveData.observe(this,
             Observer {
@@ -93,57 +102,103 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
-
-    private fun setListenersPlayerService() {
-        binding.playerNext.setOnClickListener {
-            toLog("Click Next button")
-            mediaController?.transportControls?.skipToNext()
-        }
-        binding.playerPrevious.setOnClickListener {
-            toLog("Click Previous button")
-            mediaController?.transportControls?.skipToPrevious()
-        }
-        binding.playerPlay.setOnClickListener {
-            toLog("Click Play button")
-            mediaController?.transportControls?.play()
-        }
-        binding.playerPause.setOnClickListener {
-            toLog("Click Pause button")
-            mediaController?.transportControls?.pause()
-        }
-        binding.playerStop.setOnClickListener {
-            toLog("Click Stop button")
-            mediaController?.transportControls?.stop()
+    private fun playerStateApply(@PlaybackStateCompat.State state: Int) {
+        when (state) {
+            PlaybackStateCompat.STATE_BUFFERING -> {
+                toLog("Player state: STATE_BUFFERING ($state)")
+            }
+            PlaybackStateCompat.STATE_CONNECTING -> {
+                toLog("Player state: STATE_CONNECTING ($state)")
+            }
+            PlaybackStateCompat.STATE_ERROR -> {
+                toLog("Player state: STATE_ERROR ($state)")
+            }
+            PlaybackStateCompat.STATE_FAST_FORWARDING -> {
+                toLog("Player state: STATE_FAST_FORWARDING ($state)")
+            }
+            PlaybackStateCompat.STATE_NONE -> {
+                toLog("Player state: STATE_NONE ($state)")
+            }
+            PlaybackStateCompat.STATE_PAUSED -> {
+                toLog("Player state: STATE_PAUSED ($state)")
+                showButtonPlay()
+            }
+            PlaybackStateCompat.STATE_PLAYING -> {
+                toLog("Player state: STATE_PLAYING ($state)")
+                showButtonPause()
+            }
+            PlaybackStateCompat.STATE_REWINDING -> {
+                toLog("Player state: STATE_REWINDING ($state)")
+            }
+            PlaybackStateCompat.STATE_SKIPPING_TO_NEXT -> {
+                toLog("Player state: STATE_SKIPPING_TO_NEXT ($state)")
+                showTrackInfo()
+            }
+            PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS -> {
+                toLog("Player state: STATE_SKIPPING_TO_PREVIOUS ($state)")
+                showTrackInfo()
+            }
+            PlaybackStateCompat.STATE_SKIPPING_TO_QUEUE_ITEM -> {
+                toLog("Player state: STATE_SKIPPING_TO_QUEUE_ITEM ($state)")
+            }
+            PlaybackStateCompat.STATE_STOPPED -> {
+                toLog("Player state: STATE_STOPPED ($state)")
+                showButtonPlay()
+            }
         }
     }
 
 
-    private fun setListenersPlayer() {
+    private fun setListenersPlayerControl() {
         binding.playerNext.setOnClickListener {
             toLog("Click Next button")
-            if (model.nextTrack()) {
-                prefatorySetSeekBarSettings()
-            }
+            playerControl?.next()
         }
         binding.playerPrevious.setOnClickListener {
             toLog("Click Previous button")
-            if (model.previousTrack()) {
-                prefatorySetSeekBarSettings()
-            }
+            playerControl?.previous()
         }
         binding.playerPlay.setOnClickListener {
             toLog("Click Play button")
-            model.playPlayer()
+            playerControl?.play()
         }
         binding.playerPause.setOnClickListener {
             toLog("Click Pause button")
-            model.pausePlayer()
+            playerControl?.pause()
         }
         binding.playerStop.setOnClickListener {
             toLog("Click Stop button")
-            model.stopPlayer()
+            playerControl?.stop()
         }
     }
+
+
+//    private fun setListenersPlayer() {
+//        binding.playerNext.setOnClickListener {
+//            toLog("Click Next button")
+//            if (model.nextTrack()) {
+//                prefatorySetSeekBarSettings()
+//            }
+//        }
+//        binding.playerPrevious.setOnClickListener {
+//            toLog("Click Previous button")
+//            if (model.previousTrack()) {
+//                prefatorySetSeekBarSettings()
+//            }
+//        }
+//        binding.playerPlay.setOnClickListener {
+//            toLog("Click Play button")
+//            model.playPlayer()
+//        }
+//        binding.playerPause.setOnClickListener {
+//            toLog("Click Pause button")
+//            model.pausePlayer()
+//        }
+//        binding.playerStop.setOnClickListener {
+//            toLog("Click Stop button")
+//            model.stopPlayer()
+//        }
+//    }
 
     private fun setListenerSeekBar() {
         binding.playSeekBar.setOnSeekBarChangeListener(object :
@@ -162,21 +217,22 @@ class MainActivity : AppCompatActivity() {
 
             override fun onStopTrackingTouch(playSeekBar: SeekBar?) {
                 playSeekBar?.let {
-                    model.seekToPositionPlayer(it.progress.toLong())
+                    //model.seekToPositionPlayer(it.progress.toLong())
                     isSeekBarTrackingTouch = false
                 }
             }
         })
     }
 
-    private fun showButtonPlayPause(isPlaying: Boolean) {
-        if (isPlaying) {
-            binding.playerPlay.visibility = View.GONE
-            binding.playerPause.visibility = View.VISIBLE
-        } else {
-            binding.playerPlay.visibility = View.VISIBLE
-            binding.playerPause.visibility = View.GONE
-        }
+    private fun showButtonPause() {
+        binding.playerPlay.visibility = View.GONE
+        binding.playerPause.visibility = View.VISIBLE
+    }
+
+    private fun showButtonPlay() {
+        binding.playerPause.visibility = View.GONE
+        binding.playerPlay.visibility = View.VISIBLE
+
     }
 
     private fun prefatorySetSeekBarSettings() {
@@ -201,9 +257,10 @@ class MainActivity : AppCompatActivity() {
         binding.playDuration.text = msecToTime(applyDuration)
     }
 
-    private fun showInfo() {
+    private fun showTrackInfo() {
         model.currentTrack?.let { track ->
             binding.trackTitle.text = track.title
+            setSeekBarDuration(model.getDuration())
             showCover(track.bitmapUri)
         }
     }

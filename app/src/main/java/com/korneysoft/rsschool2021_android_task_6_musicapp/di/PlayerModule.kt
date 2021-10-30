@@ -10,8 +10,8 @@ import dagger.Provides
 
 @Module
 class PlayerModule {
-    @Provides
-    fun provideTracks(context: Context): MusicPlayer {
-        return MusicPlayer(context)
-    }
+//    @Provides
+//    fun provideTracks(context: Context): MusicPlayer {
+//        return MusicPlayer(context)
+//    }
 }

@@ -3,7 +3,7 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.di
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.PlayerService
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.ServiceModule
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.ServiceConnectionModule
 
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 
@@ -11,7 +11,7 @@ import dagger.*
 import javax.inject.Singleton
 
 @Singleton
-@Component(modules = [DataModule::class, PlayerModule::class, ServiceModule::class])
+@Component(modules = [DataModule::class,  ServiceConnectionModule::class]) // PlayerModule::class
 interface AppComponent {
 
     @Component.Factory

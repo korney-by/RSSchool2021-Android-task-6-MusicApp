@@ -7,53 +7,49 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioManager.OnAudioFocusChangeListener
 import android.os.Binder
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
+import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.extractor.ExtractorsFactory
+import com.google.android.exoplayer2.DefaultRenderersFactory
+import com.google.android.exoplayer2.DefaultRenderersFactory.ExtensionRendererMode
 import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
-import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.cache.*
+import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 import javax.inject.Inject
-import com.google.android.exoplayer2.DefaultRenderersFactory
-import com.google.android.exoplayer2.DefaultRenderersFactory.ExtensionRendererMode
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
+import javax.inject.Singleton
 
 
 private const val TAG = "PlayerService"
 
-//@Singleton
-//class PlayerService @Inject constructor(private val context: Context): Service() {
-
-
-//import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
-//import com.google.android.exoplayer2.source.ExtractorMediaSource
-//import okhttp3.OkHttpClient
-
-class PlayerService() : Service() {
+class PlayerService() : Service() { //MediaBrowserServiceCompat
     @Inject
     lateinit var tracks: Tracks
-    //private val musicRepository: MusicRepository = MusicRepository()
 
     private val metadataBuilder = MediaMetadataCompat.Builder()
     private val stateBuilder = PlaybackStateCompat.Builder().setActions(
@@ -63,6 +59,7 @@ class PlayerService() : Service() {
                 or PlaybackStateCompat.ACTION_PLAY_PAUSE
                 or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                //or PlaybackStateCompat.ACTION_SEEK_TO
     )
     private lateinit var audioManager: AudioManager
     private lateinit var mediaSession: MediaSessionCompat
@@ -70,9 +67,6 @@ class PlayerService() : Service() {
 
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusRequested = false
-
-//    private var extractorsFactory: ExtractorsFactory? = null
-//    private var dataSourceFactory: DataSource.Factory? = null
 
     override fun onCreate() {
         (application as MyApplication).appComponent.inject(this)
@@ -220,7 +214,7 @@ class PlayerService() : Service() {
                 mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PLAYING,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        exoPlayer.currentPosition,
                         1f
                     ).build()
                 )
@@ -236,8 +230,8 @@ class PlayerService() : Service() {
                 mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PAUSED,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1f
+                        exoPlayer.currentPosition,
+                        0f
                     ).build()
                 )
                 currentState = PlaybackStateCompat.STATE_PAUSED
@@ -266,7 +260,7 @@ class PlayerService() : Service() {
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_STOPPED,
                         PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1f
+                        0f
                     ).build()
                 )
                 currentState = PlaybackStateCompat.STATE_STOPPED
@@ -277,6 +271,20 @@ class PlayerService() : Service() {
             override fun onSkipToNext() {
                 val track = tracks.next
                 updateMetadataFromTrack(track)
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_SKIPPING_TO_NEXT,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        currentState,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
                 refreshNotificationAndForegroundStatus(currentState)
                 prepareToPlay(track.trackUri)
             }
@@ -284,6 +292,20 @@ class PlayerService() : Service() {
             override fun onSkipToPrevious() {
                 val track = tracks.previous
                 updateMetadataFromTrack(track)
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        currentState,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
                 refreshNotificationAndForegroundStatus(currentState)
                 prepareToPlay(track.trackUri)
             }
@@ -301,22 +323,50 @@ class PlayerService() : Service() {
             }
 
             private fun updateMetadataFromTrack(track: Track) {
-
-//                val theBitmap: Bitmap = Glide
-//                    .with(applicationContext)
-//                    .asBitmap()
-//                    .load(track.bitmapUri)
-//                    .submit()
-//                    .get()
-
+                asyncLoadBitmap(track.bitmapUri)
                 metadataBuilder.apply {
-                    //putBitmap(MediaMetadataCompat.METADATA_KEY_ART, theBitmap)
                     putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.title)
                     putString(MediaMetadataCompat.METADATA_KEY_ALBUM, track.artist)
                     putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.artist)
                     putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
                     mediaSession.setMetadata(this.build())
                 }
+            }
+
+            private fun asyncLoadBitmap(uri: String) {
+                Glide.with(applicationContext)
+                    .asBitmap()
+                    .load(uri)
+                    .into(object : CustomTarget<Bitmap>() {
+                        override fun onResourceReady(
+                            resource: Bitmap,
+                            transition: Transition<in Bitmap>?
+                        ) {
+                            if (tracks.current.bitmapUri == uri) {
+                                metadataBuilder.putBitmap(
+                                    MediaMetadataCompat.METADATA_KEY_ART,
+                                    resource
+                                )
+                                mediaSession.setMetadata(metadataBuilder.build())
+                                mediaSession.setPlaybackState(
+                                    stateBuilder.setState(
+                                        currentState,
+                                        exoPlayer.currentPosition,
+                                        1f
+                                    ).build()
+                                )
+
+                            }
+                        }
+
+
+                        override fun onLoadCleared(placeholder: Drawable?) {
+                            // this is called when imageView is cleared on lifecycle call or for
+                            // some other reason.
+                            // if you are referencing the bitmap somewhere else too other than this imageView
+                            // clear it here as you can no longer have the bitmap
+                        }
+                    })
             }
         }
 
@@ -359,6 +409,7 @@ class PlayerService() : Service() {
     override fun onBind(intent: Intent): IBinder {
         return PlayerServiceBinder()
     }
+
 
     inner class PlayerServiceBinder() : Binder() {
         val mediaSessionToken: MediaSessionCompat.Token

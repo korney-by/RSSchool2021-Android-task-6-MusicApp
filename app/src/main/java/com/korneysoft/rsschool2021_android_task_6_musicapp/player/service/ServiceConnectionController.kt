@@ -28,7 +28,7 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
 
     init {
         context.bindService(
-            Intent(context, PlayerService::class.java),
+            Intent(context, PlayerService()::class.java),
             connection,
             BIND_AUTO_CREATE
         )
@@ -66,19 +66,9 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     private fun createCallbackService(): MediaControllerCompat.Callback {
         return object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                state ?: return
+                state?: return
                 _eventLiveData.value = state.state
-//                val playing = (state.state == PlaybackStateCompat.STATE_PLAYING)
-//
-//                showButtonPlayPause(playing)
-//                binding.playerStop.isEnabled = playing
-//                if ((state.state == PlaybackStateCompat.STATE_SKIPPING_TO_NEXT) ||
-//                    (state.state == PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS)){
-//                    showInfo()
-//                }
             }
         }
     }
-
-
 }
