@@ -498,6 +498,7 @@ class PlayerService : Service() {
                 )
             )
         )
+
         builder.setStyle(
             androidx.media.app.NotificationCompat.MediaStyle()
                 .setShowActionsInCompactView(1)
@@ -510,7 +511,7 @@ class PlayerService : Service() {
                 )
                 .setMediaSession(mediaSession.sessionToken)
         ) // setMediaSession need for Android Wear
-        builder.setSmallIcon(R.drawable.ic_notification)
+        //builder.setSmallIcon(R.drawable.ic_notification)
 
         // The whole background (in MediaStyle), not just icon background
         builder.color = ContextCompat.getColor(this, R.color.design_default_color_primary_dark)

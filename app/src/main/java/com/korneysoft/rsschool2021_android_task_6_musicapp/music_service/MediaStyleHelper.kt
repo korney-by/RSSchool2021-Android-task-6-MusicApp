@@ -6,6 +6,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.media.session.MediaButtonReceiver
+import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 
 // https://gist.github.com/ianhanniballake/47617ec3488e0257325c
 
@@ -41,7 +42,10 @@ internal object MediaStyleHelper {
                     PlaybackStateCompat.ACTION_STOP
                 )
             )
+            setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            setSilent(true)
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setSmallIcon(R.drawable.ic_notification)
         }
     }
 }
