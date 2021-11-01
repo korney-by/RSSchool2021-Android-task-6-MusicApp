@@ -43,9 +43,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //    bindService(Intent(applicationContext, PlayerService::class.java), serviceConnection, BIND_AUTO_CREATE)
-
-        // enable scrolling for textLog
+        // enable autoscrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
         if (model is PlayerControl) {
@@ -53,7 +51,6 @@ class MainActivity : AppCompatActivity() {
         }
         binding.playerStop.isEnabled = false
 
-        //setListenersPlayer()
         setListenersPlayerControl()
         setListenerSeekBar()
         registerObservers()

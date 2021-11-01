@@ -509,7 +509,7 @@ class PlayerService() : Service() {
                 )
                 .setMediaSession(mediaSession.sessionToken)
         ) // setMediaSession требуется для Android Wear
-        builder.setSmallIcon(R.mipmap.ic_launcher)
+        builder.setSmallIcon(R.drawable.ic_notification)
 
         // The whole background (in MediaStyle), not just icon background
         builder.color = ContextCompat.getColor(this, R.color.design_default_color_primary_dark)
