@@ -16,19 +16,23 @@ private const val TAG = "T6-MainViewModel"
 class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
 
     @Inject
-    lateinit var tracks: Tracks
-
-    @Inject
     lateinit var serviceConnectionController: ServiceConnectionController
 
     private val mediaController by lazy { serviceConnectionController.mediaController }
 
-//    private var currentTrackUri: String = ""
-//    private val _changeCurrentTrackLiveData = MutableLiveData(currentTrackUri)
-//    val changeCurrentTrackLiveData = _changeCurrentTrackLiveData
+    val currentTrackLiveData: LiveData<Track>
+        get() {
+            return serviceConnectionController.currentTrackLiveData
+            return if (this::serviceConnectionController.isInitialized) {
+                serviceConnectionController.currentTrackLiveData
+            } else {
+                MutableLiveData(null)
+            }
+        }
 
     val playerEventLiveData: LiveData<Int>
         get() {
+            return serviceConnectionController.eventLiveData
             return if (this::serviceConnectionController.isInitialized) {
                 serviceConnectionController.eventLiveData
             } else {
@@ -36,18 +40,14 @@ class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
             }
         }
 
-    val progressChangedLiveData: LiveData<Long>
+    val playbackPositionLiveData: LiveData<Long>
         get() {
+            return serviceConnectionController.playbackPositionLiveData
             return if (this::serviceConnectionController.isInitialized) {
-                serviceConnectionController.trackPositionLiveData
+                serviceConnectionController.playbackPositionLiveData
             } else {
                 MutableLiveData(0L)
             }
-        }
-
-    val currentTrack: Track
-        get() {
-            return tracks.current
         }
 
     override fun seekTo(position: Long) {

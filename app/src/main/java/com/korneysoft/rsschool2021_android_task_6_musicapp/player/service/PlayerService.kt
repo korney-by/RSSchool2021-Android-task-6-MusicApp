@@ -39,8 +39,6 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
 import com.korneysoft.rsschool2021_android_task_6_musicapp.player.ProgressTracker
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 import javax.inject.Inject
-import javax.inject.Singleton
-import android.os.Bundle
 
 
 private const val TAG = "PlayerService"
@@ -50,7 +48,9 @@ class PlayerService() : Service() {
     lateinit var tracks: Tracks
 
     private var progressTracker: ProgressTracker? = null
-    private var onProgressChanged: ((position: Long) -> Unit)? = null
+    private var callbackPlaybackPositionChanged: ((position: Long) -> Unit)? = null
+    private var callbackCurrentTrackChanged: ((track: Track) -> Unit)? = null
+    private var oldCurrentTrack: Track? = null
 
     private val metadataBuilder = MediaMetadataCompat.Builder()
     private val stateBuilder = createStateBuilder()
@@ -100,6 +100,7 @@ class PlayerService() : Service() {
         )
     }
 
+
     private fun createStateBuilder(): PlaybackStateCompat.Builder {
         return PlaybackStateCompat.Builder().setActions(
             PlaybackStateCompat.ACTION_PLAY
@@ -148,15 +149,9 @@ class PlayerService() : Service() {
     private fun setProgressTracker(player: SimpleExoPlayer) {
         progressTracker = ProgressTracker(player, object : ProgressTracker.PositionListener {
             override fun progress(position: Long) {
-                onProgressChanged?.invoke(position)
+                callbackPlaybackPositionChanged?.invoke(position)
             }
         })
-    }
-
-    fun setCallbackProgressTracker(callback: (position: Long) -> Unit) {
-        if (onProgressChanged != callback) {
-            onProgressChanged = callback
-        }
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -222,6 +217,7 @@ class PlayerService() : Service() {
                 )
                 currentState = PlaybackStateCompat.STATE_PLAYING
                 refreshNotificationAndForegroundStatus(currentState)
+                onChangeCurrentTrack()
             }
 
             override fun onSeekTo(pos: Long) {
@@ -288,6 +284,7 @@ class PlayerService() : Service() {
 
             override fun onSkipToNext() {
                 val track = tracks.next
+
                 updateMetadataFromTrack(track)
                 mediaSession.setPlaybackState(
                     stateBuilder.setState(
@@ -305,10 +302,12 @@ class PlayerService() : Service() {
                 )
                 refreshNotificationAndForegroundStatus(currentState)
                 prepareToPlay(track.trackUri)
+                onChangeCurrentTrack()
             }
 
             override fun onSkipToPrevious() {
                 val track = tracks.previous
+
                 updateMetadataFromTrack(track)
                 mediaSession.setPlaybackState(
                     stateBuilder.setState(
@@ -326,6 +325,7 @@ class PlayerService() : Service() {
                 )
                 refreshNotificationAndForegroundStatus(currentState)
                 prepareToPlay(track.trackUri)
+                onChangeCurrentTrack()
             }
 
 
@@ -371,7 +371,6 @@ class PlayerService() : Service() {
                                 }
                             }
                         }
-
                         override fun onLoadCleared(placeholder: Drawable?) {}
                     })
             }
@@ -423,10 +422,21 @@ class PlayerService() : Service() {
         val mediaSessionToken: MediaSessionCompat.Token
             get() = mediaSession.sessionToken
 
-        fun setCallbackPosition(callbackPosition: (position: Long) -> Unit) {
-            onProgressChanged = callbackPosition
+        fun setCallbackPlaybackPosition(callback: (position: Long) -> Unit) {
+            callbackPlaybackPositionChanged = callback
         }
 
+        fun setCallbackCurrentTrackChanged(callback: (track: Track) -> Unit) {
+            callbackCurrentTrackChanged = callback
+            onChangeCurrentTrack()
+        }
+    }
+
+    private fun onChangeCurrentTrack() {
+        if (oldCurrentTrack != tracks.current) {
+            oldCurrentTrack = tracks.current
+            callbackCurrentTrackChanged?.invoke(tracks.current)
+        }
     }
 
     private fun refreshNotificationAndForegroundStatus(playbackState: Int) {

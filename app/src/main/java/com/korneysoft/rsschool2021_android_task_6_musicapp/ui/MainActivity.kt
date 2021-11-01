@@ -1,17 +1,10 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.ui
 
 
-import android.content.ComponentName
-import android.content.Intent
-import android.content.ServiceConnection
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.os.IBinder
-import android.os.RemoteException
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.method.ScrollingMovementMethod
-import android.util.Log
 import android.view.View
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
@@ -23,8 +16,8 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.R
+import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.PlayerService
 import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.PlayerControl
@@ -34,7 +27,9 @@ private const val TAG = "T6-MainActivity"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+
     private var isSeekBarTrackingTouch = false
+    private var currentTrack: Track? = null
 
     @Inject
     lateinit var model: MainViewModel
@@ -63,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         setListenerSeekBar()
         registerObservers()
         prefatorySetSeekBarSettings()
-        showTrackInfo()
+        showCurrentTrackInfo()
     }
 
     private fun registerObservers() {
@@ -72,13 +67,15 @@ class MainActivity : AppCompatActivity() {
                 playerStateApply(it)
             })
 
-//        model.currentTrackLiveData.observe(this,
-//            Observer {
-//                toLog("Change track: $it")
-//                showTrackInfo()
-//            })
+        model.currentTrackLiveData.observe(this,
+            Observer {
+                it ?: return@Observer
+                currentTrack = it
+                toLog("Change track: ${it.title}")
+                showCurrentTrackInfo()
+            })
 
-        model.progressChangedLiveData.observe(this,
+        model.playbackPositionLiveData.observe(this,
             Observer {
                 if (!isSeekBarTrackingTouch) {
                     showProgressBar(it)
@@ -117,11 +114,11 @@ class MainActivity : AppCompatActivity() {
             }
             PlaybackStateCompat.STATE_SKIPPING_TO_NEXT -> {
                 toLog("Player state: STATE_SKIPPING_TO_NEXT ($state)")
-                showTrackInfo()
+                showCurrentTrackInfo()
             }
             PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS -> {
                 toLog("Player state: STATE_SKIPPING_TO_PREVIOUS ($state)")
-                showTrackInfo()
+                showCurrentTrackInfo()
             }
             PlaybackStateCompat.STATE_SKIPPING_TO_QUEUE_ITEM -> {
                 toLog("Player state: STATE_SKIPPING_TO_QUEUE_ITEM ($state)")
@@ -197,7 +194,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun prefatorySetSeekBarSettings() {
         setSeekBarPosition(0)
-        model.currentTrack?.let {
+        currentTrack?.let {
             setSeekBarDuration(it.duration)
         } ?: setSeekBarDuration(0)
     }
@@ -215,8 +212,8 @@ class MainActivity : AppCompatActivity() {
         binding.playDuration.text = msecToTime(applyDuration)
     }
 
-    private fun showTrackInfo() {
-        model.currentTrack?.let { track ->
+    private fun showCurrentTrackInfo() {
+        currentTrack?.let { track ->
             showCover(track.bitmapUri)
             binding.trackTitle.text = track.title
             binding.trackArtist.text = track.artist
@@ -226,7 +223,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun showProgressBar(progress: Long) {
         val progressView = progress.toInt()
-        Log.d(TAG, "showProgressBar MAPPING - $progressView")
         if (progressView != binding.playSeekBar.progress) {
             binding.playSeekBar.progress = progressView
         }

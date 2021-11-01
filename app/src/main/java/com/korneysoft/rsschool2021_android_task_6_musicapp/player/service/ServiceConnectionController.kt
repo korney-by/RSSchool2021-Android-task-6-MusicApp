@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Context.BIND_AUTO_CREATE
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Bundle
 import android.os.IBinder
 import android.os.RemoteException
 import android.support.v4.media.session.MediaControllerCompat
@@ -13,6 +12,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,8 +22,12 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     private val _eventLiveData = MutableLiveData(PlaybackStateCompat.STATE_NONE)
     val eventLiveData: LiveData<Int> = _eventLiveData
 
-    private val _trackPositionLiveData = MutableLiveData(0L)
-    val trackPositionLiveData: LiveData<Long> = _trackPositionLiveData
+    private val _trackPlaybackPositionLiveData = MutableLiveData(0L)
+    val playbackPositionLiveData: LiveData<Long> = _trackPlaybackPositionLiveData
+
+    private val _currentTrackLiveData: MutableLiveData<Track> = MutableLiveData(null)
+    val currentTrackLiveData: LiveData<Track> = _currentTrackLiveData
+
 
     var mediaController: MediaControllerCompat? = null
         private set
@@ -46,8 +50,11 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
                 playerServiceBinder = service as PlayerService.PlayerServiceBinder
 
                 playerServiceBinder?.let { playerServiceBinder ->
-                    playerServiceBinder.setCallbackPosition() { position ->
+                    playerServiceBinder.setCallbackPlaybackPosition() { position ->
                         onChangePosition(position)
+                    }
+                    playerServiceBinder.setCallbackCurrentTrackChanged { track ->
+                        onChangeCurrentTrack(track)
                     }
 
                     try {
@@ -86,9 +93,12 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     }
 
     private fun onChangePosition(position: Long) {
-        Log.d("T6-ServiceConnContr","position: $position")
-        _trackPositionLiveData.value=position
+        _trackPlaybackPositionLiveData.value = position
     }
 
+    private fun onChangeCurrentTrack(track: Track) {
+        //Log.d("T6-ServiceConnContr", "track: ${track.title}")
+        _currentTrackLiveData.value = track
+    }
 
 }
