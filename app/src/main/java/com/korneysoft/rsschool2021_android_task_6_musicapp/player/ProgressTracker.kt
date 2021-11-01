@@ -9,11 +9,7 @@ class ProgressTracker(private val player: Player, private val positionListener: 
     Runnable {
 
     private val handler: Handler = Handler(Looper.getMainLooper())
-    private var isPause: Boolean = false
-
-    init {
-        resume()
-    }
+    private var isPause: Boolean = true
 
     interface PositionListener {
         fun progress(position: Long)
@@ -23,7 +19,7 @@ class ProgressTracker(private val player: Player, private val positionListener: 
         val position = player.currentPosition
         positionListener.progress(position)
         if (!isPause) {
-            handler.postDelayed(this, 100)
+            handler.postDelayed(this, 150)
         }
     }
 

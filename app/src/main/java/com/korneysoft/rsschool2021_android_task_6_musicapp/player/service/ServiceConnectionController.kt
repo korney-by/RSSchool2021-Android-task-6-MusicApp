@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Context.BIND_AUTO_CREATE
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.Bundle
 import android.os.IBinder
 import android.os.RemoteException
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import javax.inject.Inject
@@ -19,17 +21,21 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
 
     private val _eventLiveData = MutableLiveData(PlaybackStateCompat.STATE_NONE)
     val eventLiveData: LiveData<Int> = _eventLiveData
+
+    private val _trackPositionLiveData = MutableLiveData(0L)
+    val trackPositionLiveData: LiveData<Long> = _trackPositionLiveData
+
     var mediaController: MediaControllerCompat? = null
         private set
 
     private var playerServiceBinder: PlayerService.PlayerServiceBinder? = null
     private val callback by lazy { createCallbackService() }
-    private val connection by lazy { createServiceConnection() }
+    private val serviceConnection by lazy { createServiceConnection() }
 
     init {
         context.bindService(
             Intent(context, PlayerService()::class.java),
-            connection,
+            serviceConnection,
             BIND_AUTO_CREATE
         )
     }
@@ -38,17 +44,20 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
         return object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder) {
                 playerServiceBinder = service as PlayerService.PlayerServiceBinder
+
                 playerServiceBinder?.let { playerServiceBinder ->
+                    playerServiceBinder.setCallbackPosition() { position ->
+                        onChangePosition(position)
+                    }
+
                     try {
                         mediaController = MediaControllerCompat(
                             context,
                             playerServiceBinder.mediaSessionToken
-                        )
-                        mediaController?.let { mediaController ->
-                            mediaController.registerCallback(callback)
-                            callback.onPlaybackStateChanged(mediaController.playbackState)
+                        ).apply {
+                            registerCallback(callback)
+                            callback.onPlaybackStateChanged(playbackState)
                         }
-
                     } catch (e: RemoteException) {
                         mediaController = null
                     }
@@ -59,6 +68,7 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
                 playerServiceBinder = null
                 mediaController?.unregisterCallback(callback)
                 mediaController = null
+                context.unbindService(serviceConnection)
             }
         }
     }
@@ -66,9 +76,19 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     private fun createCallbackService(): MediaControllerCompat.Callback {
         return object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                state?: return
-                _eventLiveData.value = state.state
+                super.onPlaybackStateChanged(state)
+                state ?: return
+                if (_eventLiveData.value != state.state) {
+                    _eventLiveData.value = state.state
+                }
             }
         }
     }
+
+    private fun onChangePosition(position: Long) {
+        Log.d("T6-ServiceConnContr","position: $position")
+        _trackPositionLiveData.value=position
+    }
+
+
 }

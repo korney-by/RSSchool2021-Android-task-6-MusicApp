@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Singleton
 data class TracksFromAssetsFile @Inject constructor(private val context: Context) : Tracks {
 
-    override val list: List<Track>
+    private val list: List<Track>
 
     private val maxIndex: Int get() = list.size - 1
     private var currentIndex = 0

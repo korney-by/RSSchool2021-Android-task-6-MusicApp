@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -15,16 +14,13 @@ import android.media.AudioManager
 import android.media.AudioManager.OnAudioFocusChangeListener
 import android.os.Binder
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
-import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
@@ -40,31 +36,27 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
+import com.korneysoft.rsschool2021_android_task_6_musicapp.player.ProgressTracker
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
-import kotlinx.coroutines.internal.synchronized
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.os.Bundle
 
 
 private const val TAG = "PlayerService"
 
-class PlayerService() : Service() { //MediaBrowserServiceCompat
+class PlayerService() : Service() {
     @Inject
     lateinit var tracks: Tracks
 
+    private var progressTracker: ProgressTracker? = null
+    private var onProgressChanged: ((position: Long) -> Unit)? = null
+
     private val metadataBuilder = MediaMetadataCompat.Builder()
-    private val stateBuilder = PlaybackStateCompat.Builder().setActions(
-        PlaybackStateCompat.ACTION_PLAY
-                or PlaybackStateCompat.ACTION_STOP
-                or PlaybackStateCompat.ACTION_PAUSE
-                or PlaybackStateCompat.ACTION_PLAY_PAUSE
-                or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
-        //or PlaybackStateCompat.ACTION_SEEK_TO
-    )
-    private lateinit var audioManager: AudioManager
-    private lateinit var mediaSession: MediaSessionCompat
-    private lateinit var exoPlayer: SimpleExoPlayer
+    private val stateBuilder = createStateBuilder()
+    private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
+    private val mediaSession: MediaSessionCompat by lazy { createMediaSession() }
+    private val exoPlayer by lazy { createExoPlayer() }
 
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusRequested = false
@@ -94,67 +86,77 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                 .build()
         }
 
-        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        val mediaButtonIntent = Intent(
+            Intent.ACTION_MEDIA_BUTTON, null, applicationContext,
+            MediaButtonReceiver::class.java
+        )
+        mediaSession.setMediaButtonReceiver(
+            PendingIntent.getBroadcast(
+                applicationContext,
+                0,
+                mediaButtonIntent,
+                0
+            )
+        )
+    }
 
-        val appContext = applicationContext
-        val activityIntent = Intent(appContext, MainActivity::class.java)
-        mediaSession = MediaSessionCompat(this, "PlayerService").apply {
+    private fun createStateBuilder(): PlaybackStateCompat.Builder {
+        return PlaybackStateCompat.Builder().setActions(
+            PlaybackStateCompat.ACTION_PLAY
+                    or PlaybackStateCompat.ACTION_STOP
+                    or PlaybackStateCompat.ACTION_PAUSE
+                    or PlaybackStateCompat.ACTION_PLAY_PAUSE
+                    or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                    or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                    or PlaybackStateCompat.ACTION_SEEK_TO
+        )
+    }
+
+    private fun createMediaSession(): MediaSessionCompat {
+        return MediaSessionCompat(this, "PlayerService").apply {
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
             }
+            val activityIntent = Intent(applicationContext, MainActivity::class.java)
             setCallback(mediaSessionCallback)
             setSessionActivity(
                 PendingIntent.getActivity(
-                    appContext,
+                    applicationContext,
                     0, // TODO setup Request код ?
                     activityIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT
                 )
             )
         }
+    }
 
-        val mediaButtonIntent = Intent(
-            Intent.ACTION_MEDIA_BUTTON, null, appContext,
-            MediaButtonReceiver::class.java
-        )
-        mediaSession.setMediaButtonReceiver(
-            PendingIntent.getBroadcast(
-                appContext,
-                0,
-                mediaButtonIntent,
-                0
-            )
-        )
-
+    private fun createExoPlayer(): SimpleExoPlayer {
         @ExtensionRendererMode
         val extensionRendererMode = DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
         val renderersFactory =
             DefaultRenderersFactory(this).setExtensionRendererMode(extensionRendererMode);
-
-        exoPlayer = SimpleExoPlayer.Builder(this, renderersFactory)
-            .setTrackSelector(DefaultTrackSelector(this))
+        return SimpleExoPlayer.Builder(this, renderersFactory)
+            .setTrackSelector(DefaultTrackSelector(applicationContext))
             .setLoadControl(DefaultLoadControl.Builder().build())
-            .build()
+            .build().apply {
+                addListener(exoPlayerListener)
+                setProgressTracker(this)
+            }
+    }
 
-        exoPlayer.addListener(exoPlayerListener)
+    private fun setProgressTracker(player: SimpleExoPlayer) {
+        progressTracker = ProgressTracker(player, object : ProgressTracker.PositionListener {
+            override fun progress(position: Long) {
+                onProgressChanged?.invoke(position)
+            }
+        })
+    }
 
-
-//        val httpDataSourceFactory: DataSource.Factory = OkHttpDataSourceFactory(
-//            OkHttpClient(),
-//            Util.getUserAgent(this, getString(R.string.app_name))
-//        )
-//        val cache: Cache = SimpleCache(
-//            File(this.cacheDir.absolutePath + "/exoplayer"),
-//            LeastRecentlyUsedCacheEvictor(1024 * 1024 * 100)
-//        ) // 100 Mb max
-//        dataSourceFactory = CacheDataSourceFactory(
-//            cache,
-//            httpDataSourceFactory,
-//            CacheDataSource.FLAG_BLOCK_ON_CACHE or CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
-//        )
-//        extractorsFactory = DefaultExtractorsFactory()
-//    }
+    fun setCallbackProgressTracker(callback: (position: Long) -> Unit) {
+        if (onProgressChanged != callback) {
+            onProgressChanged = callback
+        }
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -199,19 +201,18 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                         }
                         if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
                     }
+                    mediaSession.isActive = true
 
-                    // Указываем, что наше приложение теперь активный плеер и кнопки
-                    // на окне блокировки должны управлять именно нами
-                    mediaSession.isActive = true // Сразу после получения фокуса
 
                     registerReceiver(
                         becomingNoisyReceiver,
                         IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
                     )
                     exoPlayer.playWhenReady = true
+                    progressTracker?.resume()
                 }
 
-                // Сообщаем новое состояние
+                // send new state
                 mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PLAYING,
@@ -223,11 +224,26 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                 refreshNotificationAndForegroundStatus(currentState)
             }
 
+            override fun onSeekTo(pos: Long) {
+                super.onSeekTo(pos)
+                exoPlayer.seekTo(pos)
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        currentState,
+                        pos,
+                        1f
+                    ).build()
+                )
+                refreshNotificationAndForegroundStatus(currentState)
+            }
+
+
             override fun onPause() {
                 if (exoPlayer.playWhenReady) {
                     exoPlayer.playWhenReady = false
                     unregisterReceiver(becomingNoisyReceiver)
                 }
+                progressTracker?.pause()
                 mediaSession.setPlaybackState(
                     stateBuilder.setState(
                         PlaybackStateCompat.STATE_PAUSED,
@@ -240,6 +256,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
             }
 
             override fun onStop() {
+                progressTracker?.purgeHandler()
                 if (exoPlayer.playWhenReady) {
                     exoPlayer.playWhenReady = false
                     unregisterReceiver(becomingNoisyReceiver)
@@ -311,6 +328,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                 prepareToPlay(track.trackUri)
             }
 
+
             private fun prepareToPlay(uri: String) {
                 if (uri != currentUri) {
                     currentUri = uri
@@ -332,12 +350,13 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                     putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
                     mediaSession.setMetadata(this.build())
                 }
-
             }
 
             private fun asyncLoadBitmap(uri: String) {
                 Glide.with(applicationContext)
                     .asBitmap()
+                    .placeholder(R.drawable.ic_baseline_image_24)
+                    .error(R.drawable.ic_baseline_error_24)
                     .load(uri)
                     .into(object : CustomTarget<Bitmap>() {
                         override fun onResourceReady(
@@ -348,6 +367,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
                                 metadataBuilder.apply {
                                     putBitmap(MediaMetadataCompat.METADATA_KEY_ART, resource)
                                     mediaSession.setMetadata(this.build())
+                                    refreshNotificationAndForegroundStatus(currentState)
                                 }
                             }
                         }
@@ -360,7 +380,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
     private val audioFocusChangeListener: OnAudioFocusChangeListener =
         OnAudioFocusChangeListener { focusChange ->
             when (focusChange) {
-                AudioManager.AUDIOFOCUS_GAIN -> mediaSessionCallback.onPlay() // Не очень красиво
+                AudioManager.AUDIOFOCUS_GAIN -> mediaSessionCallback.onPlay()
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mediaSessionCallback.onPause()
                 else -> mediaSessionCallback.onPause()
             }
@@ -383,6 +403,7 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
 
         override fun onLoadingChanged(isLoading: Boolean) {}
 
+
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             if (playWhenReady && playbackState == ExoPlayer.STATE_ENDED) {
                 mediaSessionCallback.onSkipToNext()
@@ -401,6 +422,11 @@ class PlayerService() : Service() { //MediaBrowserServiceCompat
     inner class PlayerServiceBinder() : Binder() {
         val mediaSessionToken: MediaSessionCompat.Token
             get() = mediaSession.sessionToken
+
+        fun setCallbackPosition(callbackPosition: (position: Long) -> Unit) {
+            onProgressChanged = callbackPosition
+        }
+
     }
 
     private fun refreshNotificationAndForegroundStatus(playbackState: Int) {

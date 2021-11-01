@@ -56,47 +56,30 @@ class MainActivity : AppCompatActivity() {
         if (model is PlayerControl) {
             playerControl = model
         }
+        binding.playerStop.isEnabled = false
+
         //setListenersPlayer()
         setListenersPlayerControl()
-
         setListenerSeekBar()
         registerObservers()
         prefatorySetSeekBarSettings()
+        showTrackInfo()
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-//        playerServiceBinder = null
-//        mediaController?.unregisterCallback(callback)
-//        mediaController = null
-//        unbindService(serviceConnection)
-    }
-
 
     private fun registerObservers() {
-
         model.playerEventLiveData.observe(this,
             Observer {
                 playerStateApply(it)
             })
 
-
-        model.currentTrackLiveData.observe(this,
-            Observer {
-                toLog("Change track: $it")
-                showTrackInfo()
-            })
-
-//        model.isPlayingChangedLiveData.observe(this,
+//        model.currentTrackLiveData.observe(this,
 //            Observer {
-//                toLog("Change isPlaying state: $it")
-//                //showButtonPlayPause(it)
-//                setSeekBarDuration(model.getDuration())
+//                toLog("Change track: $it")
+//                showTrackInfo()
 //            })
 
         model.progressChangedLiveData.observe(this,
             Observer {
-                //toLog("Change Progress state: $it")
                 if (!isSeekBarTrackingTouch) {
                     showProgressBar(it)
                 }
@@ -127,6 +110,7 @@ class MainActivity : AppCompatActivity() {
             PlaybackStateCompat.STATE_PLAYING -> {
                 toLog("Player state: STATE_PLAYING ($state)")
                 showButtonPause()
+                enableButtonStop(true)
             }
             PlaybackStateCompat.STATE_REWINDING -> {
                 toLog("Player state: STATE_REWINDING ($state)")
@@ -145,10 +129,10 @@ class MainActivity : AppCompatActivity() {
             PlaybackStateCompat.STATE_STOPPED -> {
                 toLog("Player state: STATE_STOPPED ($state)")
                 showButtonPlay()
+                enableButtonStop(false)
             }
         }
     }
-
 
     private fun setListenersPlayerControl() {
         binding.playerNext.setOnClickListener {
@@ -173,34 +157,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-//    private fun setListenersPlayer() {
-//        binding.playerNext.setOnClickListener {
-//            toLog("Click Next button")
-//            if (model.nextTrack()) {
-//                prefatorySetSeekBarSettings()
-//            }
-//        }
-//        binding.playerPrevious.setOnClickListener {
-//            toLog("Click Previous button")
-//            if (model.previousTrack()) {
-//                prefatorySetSeekBarSettings()
-//            }
-//        }
-//        binding.playerPlay.setOnClickListener {
-//            toLog("Click Play button")
-//            model.playPlayer()
-//        }
-//        binding.playerPause.setOnClickListener {
-//            toLog("Click Pause button")
-//            model.pausePlayer()
-//        }
-//        binding.playerStop.setOnClickListener {
-//            toLog("Click Stop button")
-//            model.stopPlayer()
-//        }
-//    }
-
     private fun setListenerSeekBar() {
         binding.playSeekBar.setOnSeekBarChangeListener(object :
             SeekBar.OnSeekBarChangeListener {
@@ -218,7 +174,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onStopTrackingTouch(playSeekBar: SeekBar?) {
                 playSeekBar?.let {
-                    //model.seekToPositionPlayer(it.progress.toLong())
+                    playerControl?.seekTo(it.progress.toLong())
                     isSeekBarTrackingTouch = false
                 }
             }
@@ -233,7 +189,10 @@ class MainActivity : AppCompatActivity() {
     private fun showButtonPlay() {
         binding.playerPause.visibility = View.GONE
         binding.playerPlay.visibility = View.VISIBLE
+    }
 
+    private fun enableButtonStop(value: Boolean) {
+        binding.playerStop.isEnabled = value
     }
 
     private fun prefatorySetSeekBarSettings() {
@@ -253,17 +212,15 @@ class MainActivity : AppCompatActivity() {
             applyDuration = duration
         }
         binding.playSeekBar.max = applyDuration.toInt()
-
-        //Log.d(TAG, "setSeekBarDuration - $applyDuration")
         binding.playDuration.text = msecToTime(applyDuration)
     }
 
     private fun showTrackInfo() {
         model.currentTrack?.let { track ->
+            showCover(track.bitmapUri)
             binding.trackTitle.text = track.title
             binding.trackArtist.text = track.artist
-            setSeekBarDuration(model.getDuration())
-            showCover(track.bitmapUri)
+            setSeekBarDuration(track.duration)
         }
     }
 
@@ -286,7 +243,6 @@ class MainActivity : AppCompatActivity() {
             .placeholder(R.drawable.ic_baseline_image_24)
             .error(R.drawable.ic_baseline_error_24)
             .centerCrop()
-            //.error(R.drawable.ic_baseline_close_24)
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?,
