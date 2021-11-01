@@ -1,6 +1,5 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.ui
 
-
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v4.media.session.PlaybackStateCompat
@@ -14,16 +13,14 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.R
+import com.korneysoft.rsschool2021_android_task_6_musicapp.application.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
 import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.PlayerControl
 import javax.inject.Inject
-
-private const val TAG = "T6-MainActivity"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -43,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // enable autoscrolling for textLog
+        // enable auto-scrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
         if (model is PlayerControl) {
@@ -197,7 +194,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setSeekBarPosition(position: Long) {
-        binding.playPosition.text = msecToTime(position.toLong())
+        binding.playPosition.text = msecToTime(position)
     }
 
     private fun setSeekBarDuration(duration: Long) {

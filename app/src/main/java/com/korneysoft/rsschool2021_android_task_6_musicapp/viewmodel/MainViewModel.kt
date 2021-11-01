@@ -2,11 +2,9 @@ package com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
-import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.service.ServiceConnectionController
+import com.korneysoft.rsschool2021_android_task_6_musicapp.music_service.ServiceConnectionController
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,37 +16,18 @@ class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
     @Inject
     lateinit var serviceConnectionController: ServiceConnectionController
 
-    private val mediaController by lazy { serviceConnectionController.mediaController }
-
-    val currentTrackLiveData: LiveData<Track>
-        get() {
-            return serviceConnectionController.currentTrackLiveData
-            return if (this::serviceConnectionController.isInitialized) {
-                serviceConnectionController.currentTrackLiveData
-            } else {
-                MutableLiveData(null)
-            }
-        }
-
-    val playerEventLiveData: LiveData<Int>
-        get() {
-            return serviceConnectionController.eventLiveData
-            return if (this::serviceConnectionController.isInitialized) {
-                serviceConnectionController.eventLiveData
-            } else {
-                MutableLiveData(0)
-            }
-        }
-
-    val playbackPositionLiveData: LiveData<Long>
-        get() {
-            return serviceConnectionController.playbackPositionLiveData
-            return if (this::serviceConnectionController.isInitialized) {
-                serviceConnectionController.playbackPositionLiveData
-            } else {
-                MutableLiveData(0L)
-            }
-        }
+    private val mediaController by lazy {
+        serviceConnectionController.mediaController
+    }
+    val currentTrackLiveData: LiveData<Track> by lazy {
+        serviceConnectionController.currentTrackLiveData
+    }
+    val playerEventLiveData: LiveData<Int> by lazy {
+        serviceConnectionController.eventLiveData
+    }
+    val playbackPositionLiveData: LiveData<Long> by lazy {
+        serviceConnectionController.playbackPositionLiveData
+    }
 
     override fun seekTo(position: Long) {
         mediaController?.transportControls?.seekTo(position)
@@ -78,5 +57,4 @@ class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
         Log.d(TAG, "stop")
         mediaController?.transportControls?.stop()
     }
-
 }

@@ -5,5 +5,4 @@ interface Tracks {
     val previous: Track
     val current: Track
     val next: Track
-
 }

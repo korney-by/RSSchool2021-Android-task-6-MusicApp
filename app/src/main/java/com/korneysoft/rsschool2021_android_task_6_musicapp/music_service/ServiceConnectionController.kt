@@ -1,4 +1,4 @@
-package com.korneysoft.rsschool2021_android_task_6_musicapp.player.service
+package com.korneysoft.rsschool2021_android_task_6_musicapp.music_service
 
 import android.content.ComponentName
 import android.content.Context
@@ -9,7 +9,6 @@ import android.os.IBinder
 import android.os.RemoteException
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
@@ -27,7 +26,6 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
 
     private val _currentTrackLiveData: MutableLiveData<Track> = MutableLiveData(null)
     val currentTrackLiveData: LiveData<Track> = _currentTrackLiveData
-
 
     var mediaController: MediaControllerCompat? = null
         private set
@@ -50,15 +48,15 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
                 playerServiceBinder = service as PlayerService.PlayerServiceBinder
 
                 playerServiceBinder?.let { playerServiceBinder ->
-                    playerServiceBinder.setCallbackPlaybackPosition() { position ->
+                    playerServiceBinder.setCallbackPlaybackPosition { position ->
                         onChangePosition(position)
                     }
                     playerServiceBinder.setCallbackCurrentTrackChanged { track ->
                         onChangeCurrentTrack(track)
                     }
 
-                    try {
-                        mediaController = MediaControllerCompat(
+                    mediaController = try {
+                        MediaControllerCompat(
                             context,
                             playerServiceBinder.mediaSessionToken
                         ).apply {
@@ -66,7 +64,7 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
                             callback.onPlaybackStateChanged(playbackState)
                         }
                     } catch (e: RemoteException) {
-                        mediaController = null
+                        null
                     }
                 }
             }
@@ -97,8 +95,6 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     }
 
     private fun onChangeCurrentTrack(track: Track) {
-        //Log.d("T6-ServiceConnContr", "track: ${track.title}")
         _currentTrackLiveData.value = track
     }
-
 }

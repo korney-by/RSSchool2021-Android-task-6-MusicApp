@@ -6,5 +6,5 @@ interface PlayerControl {
     fun play()
     fun pause()
     fun stop()
-    fun seekTo(position:Long)
+    fun seekTo(position: Long)
 }

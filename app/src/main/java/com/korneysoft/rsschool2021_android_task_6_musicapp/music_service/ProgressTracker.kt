@@ -1,8 +1,7 @@
-package com.korneysoft.rsschool2021_android_task_6_musicapp.player
+package com.korneysoft.rsschool2021_android_task_6_musicapp.music_service
 
 import android.os.Handler
 import android.os.Looper
-
 import com.google.android.exoplayer2.Player
 
 class ProgressTracker(private val player: Player, private val positionListener: PositionListener) :

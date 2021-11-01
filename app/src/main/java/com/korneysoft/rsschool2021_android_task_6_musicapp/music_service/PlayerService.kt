@@ -1,7 +1,11 @@
-package com.korneysoft.rsschool2021_android_task_6_musicapp.player.service
+package com.korneysoft.rsschool2021_android_task_6_musicapp.music_service
 
 import android.annotation.SuppressLint
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -25,25 +29,25 @@ import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
-import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.DefaultRenderersFactory
 import com.google.android.exoplayer2.DefaultRenderersFactory.ExtensionRendererMode
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.PlaybackParameters
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
-import com.google.android.exoplayer2.upstream.cache.*
-import com.korneysoft.rsschool2021_android_task_6_musicapp.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.R
+import com.korneysoft.rsschool2021_android_task_6_musicapp.application.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
-import com.korneysoft.rsschool2021_android_task_6_musicapp.player.ProgressTracker
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 import javax.inject.Inject
 
-
-private const val TAG = "PlayerService"
-
-class PlayerService() : Service() {
+class PlayerService : Service() {
     @Inject
     lateinit var tracks: Tracks
 
@@ -100,7 +104,6 @@ class PlayerService() : Service() {
         )
     }
 
-
     private fun createStateBuilder(): PlaybackStateCompat.Builder {
         return PlaybackStateCompat.Builder().setActions(
             PlaybackStateCompat.ACTION_PLAY
@@ -113,11 +116,15 @@ class PlayerService() : Service() {
         )
     }
 
+    @SuppressLint("UnspecifiedImmutableFlag")
     private fun createMediaSession(): MediaSessionCompat {
         return MediaSessionCompat(this, "PlayerService").apply {
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
+                setFlags(
+                    MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
+                            MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
+                )
             }
             val activityIntent = Intent(applicationContext, MainActivity::class.java)
             setCallback(mediaSessionCallback)
@@ -136,7 +143,7 @@ class PlayerService() : Service() {
         @ExtensionRendererMode
         val extensionRendererMode = DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
         val renderersFactory =
-            DefaultRenderersFactory(this).setExtensionRendererMode(extensionRendererMode);
+            DefaultRenderersFactory(this).setExtensionRendererMode(extensionRendererMode)
         return SimpleExoPlayer.Builder(this, renderersFactory)
             .setTrackSelector(DefaultTrackSelector(applicationContext))
             .setLoadControl(DefaultLoadControl.Builder().build())
@@ -198,7 +205,6 @@ class PlayerService() : Service() {
                     }
                     mediaSession.isActive = true
 
-
                     registerReceiver(
                         becomingNoisyReceiver,
                         IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -232,7 +238,6 @@ class PlayerService() : Service() {
                 )
                 refreshNotificationAndForegroundStatus(currentState)
             }
-
 
             override fun onPause() {
                 if (exoPlayer.playWhenReady) {
@@ -328,7 +333,6 @@ class PlayerService() : Service() {
                 onChangeCurrentTrack()
             }
 
-
             private fun prepareToPlay(uri: String) {
                 if (uri != currentUri) {
                     currentUri = uri
@@ -371,7 +375,8 @@ class PlayerService() : Service() {
                                 }
                             }
                         }
-                        override fun onLoadCleared(placeholder: Drawable?) {}
+
+                        override fun onLoadCleared(placeholder: Drawable?) = Unit
                     })
             }
         }
@@ -397,11 +402,9 @@ class PlayerService() : Service() {
         override fun onTracksChanged(
             trackGroups: TrackGroupArray,
             trackSelections: TrackSelectionArray
-        ) {
-        }
+        ) = Unit
 
-        override fun onLoadingChanged(isLoading: Boolean) {}
-
+        override fun onLoadingChanged(isLoading: Boolean) = Unit
 
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             if (playWhenReady && playbackState == ExoPlayer.STATE_ENDED) {
@@ -409,16 +412,14 @@ class PlayerService() : Service() {
             }
         }
 
-        fun onPlayerError(error: ExoPlaybackException?) {}
-        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {}
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) = Unit
     }
 
     override fun onBind(intent: Intent): IBinder {
         return PlayerServiceBinder()
     }
 
-
-    inner class PlayerServiceBinder() : Binder() {
+    inner class PlayerServiceBinder : Binder() {
         val mediaSessionToken: MediaSessionCompat.Token
             get() = mediaSession.sessionToken
 
@@ -508,7 +509,7 @@ class PlayerService() : Service() {
                     )
                 )
                 .setMediaSession(mediaSession.sessionToken)
-        ) // setMediaSession требуется для Android Wear
+        ) // setMediaSession need for Android Wear
         builder.setSmallIcon(R.drawable.ic_notification)
 
         // The whole background (in MediaStyle), not just icon background
@@ -517,13 +518,11 @@ class PlayerService() : Service() {
         builder.setShowWhen(false)
         builder.priority = NotificationCompat.PRIORITY_HIGH
         builder.setOnlyAlertOnce(true)
-//        builder.setChannelId(NOTIFICATION_DEFAULT_CHANNEL_ID)
         return builder.build()
     }
 
     companion object {
         private const val NOTIFICATION_ID = 1
         private const val NOTIFICATION_DEFAULT_CHANNEL_ID = "default_channel"
-
     }
 }

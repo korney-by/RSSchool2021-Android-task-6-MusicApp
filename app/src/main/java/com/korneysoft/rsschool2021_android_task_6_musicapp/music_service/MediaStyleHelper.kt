@@ -1,4 +1,4 @@
-package com.korneysoft.rsschool2021_android_task_6_musicapp.player.service
+package com.korneysoft.rsschool2021_android_task_6_musicapp.music_service
 
 import android.content.Context
 import android.support.v4.media.MediaMetadataCompat
@@ -17,7 +17,7 @@ internal object MediaStyleHelper {
      * Build a notification using the information from the given media session. Makes heavy use
      * of [MediaMetadataCompat.getDescription] to extract the appropriate information.
      *
-     * @param context      Context used to construct the notification.
+     * @param context Context used to construct the notification.
      * @param mediaSession Media session to get information.
      * @return A pre-built notification with information from the given media session.
      */

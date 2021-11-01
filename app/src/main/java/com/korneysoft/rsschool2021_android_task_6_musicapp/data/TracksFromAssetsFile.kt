@@ -26,7 +26,7 @@ data class TracksFromAssetsFile @Inject constructor(private val context: Context
         }
 
     override val previous: Track
-        get(){
+        get() {
             currentIndex = if (currentIndex == 0) maxIndex else currentIndex.minus(1)
             return current
         }
@@ -43,15 +43,14 @@ data class TracksFromAssetsFile @Inject constructor(private val context: Context
     }
 
     private fun readAsset(fileName: String): String {
-        try {
-            return context
+        return try {
+            context
                 .assets
                 .open(fileName)
                 .bufferedReader()
                 .use(BufferedReader::readText)
         } catch (e: Exception) {
-            return "[]"
+            "[]"
         }
     }
-
 }
