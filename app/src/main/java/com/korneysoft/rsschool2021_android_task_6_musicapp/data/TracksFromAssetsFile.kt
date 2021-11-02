@@ -9,7 +9,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-data class TracksFromAssetsFile @Inject constructor(private val context: Context) : Tracks {
+data class TracksFromAssetsFile @Inject constructor(private val context: Context) :
+    TrackRepository {
 
     private val list: List<Track>
 

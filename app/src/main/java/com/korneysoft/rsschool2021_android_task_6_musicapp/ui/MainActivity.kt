@@ -46,7 +46,6 @@ class MainActivity : AppCompatActivity() {
         if (model is PlayerControl) {
             playerControl = model
         }
-        binding.playerStop.isEnabled = false
 
         setListenersPlayerControl()
         setListenerSeekBar()
@@ -58,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     private fun registerObservers() {
         model.playerEventLiveData.observe(this,
             Observer {
+                it ?: return@Observer
                 playerStateApply(it)
             })
 
@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
 
         model.playbackPositionLiveData.observe(this,
             Observer {
+                it ?: return@Observer
                 if (!isSeekBarTrackingTouch) {
                     showProgressBar(it)
                 }
@@ -97,11 +98,12 @@ class MainActivity : AppCompatActivity() {
             PlaybackStateCompat.STATE_PAUSED -> {
                 toLog("Player state: STATE_PAUSED ($state)")
                 showButtonPlay()
+                showButtonStop(true)
             }
             PlaybackStateCompat.STATE_PLAYING -> {
                 toLog("Player state: STATE_PLAYING ($state)")
                 showButtonPause()
-                enableButtonStop(true)
+                showButtonStop(true)
             }
             PlaybackStateCompat.STATE_REWINDING -> {
                 toLog("Player state: STATE_REWINDING ($state)")
@@ -120,7 +122,7 @@ class MainActivity : AppCompatActivity() {
             PlaybackStateCompat.STATE_STOPPED -> {
                 toLog("Player state: STATE_STOPPED ($state)")
                 showButtonPlay()
-                enableButtonStop(false)
+                showButtonStop(false)
             }
         }
     }
@@ -182,8 +184,8 @@ class MainActivity : AppCompatActivity() {
         binding.playerPlay.visibility = View.VISIBLE
     }
 
-    private fun enableButtonStop(value: Boolean) {
-        binding.playerStop.isEnabled = value
+    private fun showButtonStop(value: Boolean) {
+        binding.playerStop.visibility = if (value) View.VISIBLE else View.GONE
     }
 
     private fun prefatorySetSeekBarSettings() {

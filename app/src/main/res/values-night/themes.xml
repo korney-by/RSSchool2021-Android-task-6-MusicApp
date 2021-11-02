@@ -2,15 +2,15 @@
 
     <style name="Theme.RSShcool2021Androidtask5Cats.DarkBlue" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primaryColor</item>
-        <item name="colorPrimaryVariant">@color/primaryLightColor</item>
-        <item name="colorOnPrimary">@color/primaryLightColor</item>
+        <item name="colorPrimaryVariant">#27343F</item>
+        <item name="colorOnPrimary">@color/primaryDarkColor</item>
 
         <item name="colorOnSecondary">@color/secondaryColor</item>
         <item name="colorSecondaryVariant">@color/secondaryDarkColor</item>
         <item name="colorSecondary">@color/secondaryLightColor</item>
 
         <item name="android:textColorPrimary">@color/primaryTextColor</item>
-        <item name="android:textColorSecondary">#657F99</item>
+        <item name="android:textColorSecondary">#829EB9</item>
 
         <!-- Status bar color. -->
         <item name="android:statusBarColor">@color/primaryColor</item>

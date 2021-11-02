@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="backgroundLoadAnimation">#000000</color>
-    <color name="primaryColor">#111D29</color>
-    <color name="primaryLightColor">#2E3C49</color>
-    <color name="primaryDarkColor">#00000e</color>
-    <color name="secondaryColor">#2154AD</color>
+    <color name="primaryColor">#2E3C49</color>
+    <color name="primaryLightColor">#ffffff</color>
+    <color name="primaryDarkColor">#2E3C49</color>
+    <color name="secondaryColor">#FFFFFF</color>
     <!--    <color name="secondaryLightColor">#FFAD32</color>-->
-    <color name="secondaryLightColor">#FFED29</color>
+    <color name="secondaryLightColor">#03A9F4</color>
     <color name="secondaryDarkColor">#28323E</color>
     <color name="primaryTextColor">#ffffff</color>
     <color name="secondaryTextColor">#485C70</color>
+
+    <color name="colorControlNormal">#ffffff</color>
 </resources>

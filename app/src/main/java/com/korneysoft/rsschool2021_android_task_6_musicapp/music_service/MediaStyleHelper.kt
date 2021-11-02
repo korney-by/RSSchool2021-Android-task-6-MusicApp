@@ -42,7 +42,6 @@ internal object MediaStyleHelper {
                     PlaybackStateCompat.ACTION_STOP
                 )
             )
-            setPriority(NotificationCompat.PRIORITY_DEFAULT)
             setSilent(true)
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setSmallIcon(R.drawable.ic_notification)

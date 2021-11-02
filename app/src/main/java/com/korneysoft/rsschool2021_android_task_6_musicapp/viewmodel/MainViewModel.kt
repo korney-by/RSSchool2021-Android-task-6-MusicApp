@@ -19,7 +19,7 @@ class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
     private val mediaController by lazy {
         serviceConnectionController.mediaController
     }
-    val currentTrackLiveData: LiveData<Track> by lazy {
+    val currentTrackLiveData: LiveData<Track?> by lazy {
         serviceConnectionController.currentTrackLiveData
     }
     val playerEventLiveData: LiveData<Int> by lazy {

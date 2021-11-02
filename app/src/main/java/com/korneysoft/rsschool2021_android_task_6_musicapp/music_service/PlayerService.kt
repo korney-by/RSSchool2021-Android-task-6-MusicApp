@@ -43,13 +43,13 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.application.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
-import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Tracks
+import com.korneysoft.rsschool2021_android_task_6_musicapp.data.TrackRepository
 import com.korneysoft.rsschool2021_android_task_6_musicapp.ui.MainActivity
 import javax.inject.Inject
 
 class PlayerService : Service() {
     @Inject
-    lateinit var tracks: Tracks
+    lateinit var tracks: TrackRepository
 
     private var progressTracker: ProgressTracker? = null
     private var callbackPlaybackPositionChanged: ((position: Long) -> Unit)? = null
@@ -126,12 +126,13 @@ class PlayerService : Service() {
                             MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
                 )
             }
+
             val activityIntent = Intent(applicationContext, MainActivity::class.java)
             setCallback(mediaSessionCallback)
             setSessionActivity(
                 PendingIntent.getActivity(
                     applicationContext,
-                    0, // TODO setup Request код ?
+                    0,
                     activityIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT
                 )
@@ -501,7 +502,8 @@ class PlayerService : Service() {
 
         builder.setStyle(
             androidx.media.app.NotificationCompat.MediaStyle()
-                .setShowActionsInCompactView(1)
+
+                .setShowActionsInCompactView(0, 1, 2)
                 .setShowCancelButton(true)
                 .setCancelButtonIntent(
                     MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -510,15 +512,12 @@ class PlayerService : Service() {
                     )
                 )
                 .setMediaSession(mediaSession.sessionToken)
-        ) // setMediaSession need for Android Wear
-        //builder.setSmallIcon(R.drawable.ic_notification)
-
-        // The whole background (in MediaStyle), not just icon background
-        builder.color = ContextCompat.getColor(this, R.color.design_default_color_primary_dark)
-
+        )
+        builder.setSmallIcon(R.drawable.ic_notification)
+        builder.color = ContextCompat.getColor(this, R.color.secondaryColor)
         builder.setShowWhen(false)
         builder.priority = NotificationCompat.PRIORITY_HIGH
-        builder.setOnlyAlertOnce(true)
+        builder.setSmallIcon(R.drawable.ic_notification)
         return builder.build()
     }
 
