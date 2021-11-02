@@ -7,7 +7,7 @@
     tools:context=".ui.MainActivity">
 
     <LinearLayout
-        android:id="@+id/buttons"
+        android:id="@+id/player_buttons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="center"
@@ -80,7 +80,7 @@
         android:gravity="center"
         android:orientation="horizontal"
         android:weightSum="2"
-        app:layout_constraintEnd_toStartOf="@+id/buttons"
+        app:layout_constraintEnd_toStartOf="@+id/player_buttons"
         app:layout_constraintStart_toStartOf="parent"
         tools:ignore="MissingConstraints">
 
@@ -119,6 +119,7 @@
         android:layout_marginStart="16dp"
         android:contentDescription="@string/cover"
         app:layout_constraintBottom_toTopOf="@+id/player_position"
+        app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toStartOf="@+id/text_log"
         app:layout_constraintHorizontal_bias="1"
         app:layout_constraintStart_toStartOf="parent"
@@ -182,7 +183,7 @@
         android:gravity="start|bottom"
         android:scrollbars="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/buttons"
+        app:layout_constraintEnd_toStartOf="@+id/player_buttons"
         app:layout_constraintStart_toEndOf="@+id/track_cover"
         app:layout_constraintTop_toBottomOf="@+id/track_info"
         app:layout_constraintVertical_bias="0.0" />

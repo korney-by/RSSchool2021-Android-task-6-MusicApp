@@ -10,4 +10,6 @@
     <color name="secondaryDarkColor">#28323E</color>
     <color name="primaryTextColor">#ffffff</color>
     <color name="secondaryTextColor">#485C70</color>
+
+    <color name="colorControlNormal">#ffffff</color>
 </resources>

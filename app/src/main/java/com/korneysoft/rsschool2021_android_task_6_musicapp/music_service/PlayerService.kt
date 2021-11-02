@@ -118,6 +118,7 @@ class PlayerService : Service() {
 
     @SuppressLint("UnspecifiedImmutableFlag")
     private fun createMediaSession(): MediaSessionCompat {
+        //return MediaSessionCompat(this, "PlayerService").apply {
         return MediaSessionCompat(this, "PlayerService").apply {
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -126,12 +127,13 @@ class PlayerService : Service() {
                             MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
                 )
             }
+
             val activityIntent = Intent(applicationContext, MainActivity::class.java)
             setCallback(mediaSessionCallback)
             setSessionActivity(
                 PendingIntent.getActivity(
                     applicationContext,
-                    0, // TODO setup Request код ?
+                    0,
                     activityIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT
                 )
@@ -498,9 +500,10 @@ class PlayerService : Service() {
                 )
             )
         )
-
+        builder.setSmallIcon(R.drawable.ic_notification)
         builder.setStyle(
             androidx.media.app.NotificationCompat.MediaStyle()
+
                 .setShowActionsInCompactView(1)
                 .setShowCancelButton(true)
                 .setCancelButtonIntent(
@@ -510,15 +513,13 @@ class PlayerService : Service() {
                     )
                 )
                 .setMediaSession(mediaSession.sessionToken)
-        ) // setMediaSession need for Android Wear
-        //builder.setSmallIcon(R.drawable.ic_notification)
+        )
 
         // The whole background (in MediaStyle), not just icon background
         builder.color = ContextCompat.getColor(this, R.color.design_default_color_primary_dark)
-
         builder.setShowWhen(false)
         builder.priority = NotificationCompat.PRIORITY_HIGH
-        builder.setOnlyAlertOnce(true)
+        builder.setSmallIcon(R.drawable.ic_notification)
         return builder.build()
     }
 
