@@ -40,8 +40,6 @@ detekt {
 tasks.detekt.jvmTarget = "1.8"
 
 
-
-
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
