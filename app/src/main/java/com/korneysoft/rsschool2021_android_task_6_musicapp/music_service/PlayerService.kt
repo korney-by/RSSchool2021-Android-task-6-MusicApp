@@ -502,7 +502,6 @@ class PlayerService : Service() {
 
         builder.setStyle(
             androidx.media.app.NotificationCompat.MediaStyle()
-
                 .setShowActionsInCompactView(0, 1, 2)
                 .setShowCancelButton(true)
                 .setCancelButtonIntent(
@@ -514,10 +513,9 @@ class PlayerService : Service() {
                 .setMediaSession(mediaSession.sessionToken)
         )
         builder.setSmallIcon(R.drawable.ic_notification)
-        builder.color = ContextCompat.getColor(this, R.color.secondaryColor)
+        builder.color = ContextCompat.getColor(this, R.color.primaryDarkColor)
         builder.setShowWhen(false)
         builder.priority = NotificationCompat.PRIORITY_HIGH
-        builder.setSmallIcon(R.drawable.ic_notification)
         return builder.build()
     }
 

@@ -81,46 +81,46 @@ class MainActivity : AppCompatActivity() {
     private fun playerStateApply(@PlaybackStateCompat.State state: Int) {
         when (state) {
             PlaybackStateCompat.STATE_BUFFERING -> {
-                toLog("Player state: STATE_BUFFERING ($state)")
+                toLog("Player state: STATE_BUFFERING")
             }
             PlaybackStateCompat.STATE_CONNECTING -> {
-                toLog("Player state: STATE_CONNECTING ($state)")
+                toLog("Player state: STATE_CONNECTING")
             }
             PlaybackStateCompat.STATE_ERROR -> {
-                toLog("Player state: STATE_ERROR ($state)")
+                toLog("Player state: STATE_ERROR")
             }
             PlaybackStateCompat.STATE_FAST_FORWARDING -> {
-                toLog("Player state: STATE_FAST_FORWARDING ($state)")
+                toLog("Player state: STATE_FAST_FORWARDING")
             }
             PlaybackStateCompat.STATE_NONE -> {
-                toLog("Player state: STATE_NONE ($state)")
+                toLog("Player state: STATE_NONE")
             }
             PlaybackStateCompat.STATE_PAUSED -> {
-                toLog("Player state: STATE_PAUSED ($state)")
+                toLog("Player state: STATE_PAUSED")
                 showButtonPlay()
                 showButtonStop(true)
             }
             PlaybackStateCompat.STATE_PLAYING -> {
-                toLog("Player state: STATE_PLAYING ($state)")
+                toLog("Player state: STATE_PLAYING")
                 showButtonPause()
                 showButtonStop(true)
             }
             PlaybackStateCompat.STATE_REWINDING -> {
-                toLog("Player state: STATE_REWINDING ($state)")
+                toLog("Player state: STATE_REWINDING")
             }
             PlaybackStateCompat.STATE_SKIPPING_TO_NEXT -> {
-                toLog("Player state: STATE_SKIPPING_TO_NEXT ($state)")
+                toLog("Player state: STATE_SKIPPING_TO_NEXT")
                 showCurrentTrackInfo()
             }
             PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS -> {
-                toLog("Player state: STATE_SKIPPING_TO_PREVIOUS ($state)")
+                toLog("Player state: STATE_SKIPPING_TO_PREVIOUS")
                 showCurrentTrackInfo()
             }
             PlaybackStateCompat.STATE_SKIPPING_TO_QUEUE_ITEM -> {
-                toLog("Player state: STATE_SKIPPING_TO_QUEUE_ITEM ($state)")
+                toLog("Player state: STATE_SKIPPING_TO_QUEUE_ITEM")
             }
             PlaybackStateCompat.STATE_STOPPED -> {
-                toLog("Player state: STATE_STOPPED ($state)")
+                toLog("Player state: STATE_STOPPED")
                 showButtonPlay()
                 showButtonStop(false)
             }
@@ -230,6 +230,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCover(uri: String) {
         val view = binding.trackCover
+
         Glide.with(view.context)
             .load(uri)
             .placeholder(R.drawable.ic_baseline_image_24)

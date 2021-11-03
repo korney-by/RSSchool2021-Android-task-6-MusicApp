@@ -19,10 +19,10 @@ import javax.inject.Singleton
 class ServiceConnectionController @Inject constructor(private val context: Context) {
 
     private val _eventLiveData = MutableLiveData(PlaybackStateCompat.STATE_NONE)
-    val eventLiveData: LiveData<Int> = _eventLiveData
+    val eventLiveData: LiveData<Int?> = _eventLiveData
 
     private val _trackPlaybackPositionLiveData = MutableLiveData(0L)
-    val playbackPositionLiveData: LiveData<Long> = _trackPlaybackPositionLiveData
+    val playbackPositionLiveData: LiveData<Long?> = _trackPlaybackPositionLiveData
 
     private val _currentTrackLiveData: MutableLiveData<Track?> = MutableLiveData(null)
     val currentTrackLiveData: LiveData<Track?> = _currentTrackLiveData

@@ -20,16 +20,17 @@ plugins {
 
 subprojects {
     apply plugin: "org.jlleitschuh.gradle.ktlint"
-
     ktlint {
         debug = false
     }
-}
 
+
+}
 detekt {
     toolVersion = "1.18.1"
     config = files("config/detekt/detekt.yml")
     buildUponDefaultConfig = true
+
     reports {
         html {
             enabled = true
@@ -37,6 +38,7 @@ detekt {
         }
     }
 }
+
 tasks.detekt.jvmTarget = "1.8"
 
 

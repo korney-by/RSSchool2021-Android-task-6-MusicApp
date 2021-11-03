@@ -22,10 +22,10 @@ class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
     val currentTrackLiveData: LiveData<Track?> by lazy {
         serviceConnectionController.currentTrackLiveData
     }
-    val playerEventLiveData: LiveData<Int> by lazy {
+    val playerEventLiveData: LiveData<Int?> by lazy {
         serviceConnectionController.eventLiveData
     }
-    val playbackPositionLiveData: LiveData<Long> by lazy {
+    val playbackPositionLiveData: LiveData<Long?> by lazy {
         serviceConnectionController.playbackPositionLiveData
     }
 
