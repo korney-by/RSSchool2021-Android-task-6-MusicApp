@@ -65,6 +65,257 @@ class PlayerService : Service() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusRequested = false
 
+    private val mediaSessionCallback: MediaSessionCompat.Callback =
+        object : MediaSessionCompat.Callback() {
+            private var currentUri: String? = null
+            var currentState = PlaybackStateCompat.STATE_STOPPED
+
+            override fun onPlay() {
+                if (!exoPlayer.isPlaying) {
+                    startService(Intent(applicationContext, PlayerService::class.java))
+                    val track = tracks.current
+
+                    updateMetadataFromTrack(track)
+                    prepareToPlay(track.trackUri)
+
+                    if (!audioFocusRequested) {
+                        audioFocusRequested = if (requestAudioFocus()) true else return
+                    }
+                    mediaSession.isActive = true
+
+                    registerReceiver(
+                        becomingNoisyReceiver,
+                        IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+                    )
+                    exoPlayer.play()
+                    progressTracker?.resume()
+                }
+
+                // send new state
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_PLAYING,
+                        exoPlayer.currentPosition,
+                        1f
+                    ).build()
+                )
+                currentState = PlaybackStateCompat.STATE_PLAYING
+                refreshNotificationAndForegroundStatus(currentState)
+                onChangeCurrentTrack()
+            }
+
+            override fun onSeekTo(pos: Long) {
+                super.onSeekTo(pos)
+                exoPlayer.seekTo(pos)
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        currentState,
+                        pos,
+                        1f
+                    ).build()
+                )
+                refreshNotificationAndForegroundStatus(currentState)
+            }
+
+            override fun onPause() {
+                if (exoPlayer.isPlaying) {
+                    exoPlayer.pause()
+                    unregisterReceiver(becomingNoisyReceiver)
+                }
+                progressTracker?.pause()
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_PAUSED,
+                        exoPlayer.currentPosition,
+                        0f
+                    ).build()
+                )
+                currentState = PlaybackStateCompat.STATE_PAUSED
+                refreshNotificationAndForegroundStatus(currentState)
+            }
+
+            override fun onStop() {
+                progressTracker?.purgeHandler()
+                if (exoPlayer.isPlaying) {
+                    exoPlayer.pause()
+                    unregisterReceiver(becomingNoisyReceiver)
+                }
+
+                if (audioFocusRequested) {
+                    abandonAudioFocus()
+                    audioFocusRequested = false
+                }
+                mediaSession.isActive = false
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_STOPPED,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        0f
+                    ).build()
+                )
+                currentState = PlaybackStateCompat.STATE_STOPPED
+                refreshNotificationAndForegroundStatus(currentState)
+                stopSelf()
+            }
+
+            override fun onSkipToNext() {
+                val track = tracks.next
+
+                updateMetadataFromTrack(track)
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_SKIPPING_TO_NEXT,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        currentState,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
+                refreshNotificationAndForegroundStatus(currentState)
+                prepareToPlay(track.trackUri)
+                onChangeCurrentTrack()
+            }
+
+            override fun onSkipToPrevious() {
+                val track = tracks.previous
+
+                updateMetadataFromTrack(track)
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
+                mediaSession.setPlaybackState(
+                    stateBuilder.setState(
+                        currentState,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1f
+                    ).build()
+                )
+                refreshNotificationAndForegroundStatus(currentState)
+                prepareToPlay(track.trackUri)
+                onChangeCurrentTrack()
+            }
+
+            // return true if successful
+            private fun requestAudioFocus(): Boolean {
+                var audioFocusResult: Int = AudioManager.AUDIOFOCUS_REQUEST_FAILED
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    audioFocusRequest?.let { audioFocusRequest ->
+                        audioFocusResult = audioManager.requestAudioFocus(audioFocusRequest)
+                    }
+                } else {
+                    audioFocusResult = audioManager.requestAudioFocus(
+                        audioFocusChangeListener,
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.AUDIOFOCUS_GAIN
+                    )
+                }
+                return (audioFocusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+            }
+
+            private fun abandonAudioFocus() {
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    audioFocusRequest?.let { audioFocusRequest ->
+                        audioManager.abandonAudioFocusRequest(audioFocusRequest)
+                    }
+                } else {
+                    audioManager.abandonAudioFocus(audioFocusChangeListener)
+                }
+            }
+
+            private fun prepareToPlay(uri: String) {
+                if (uri != currentUri) {
+                    currentUri = uri
+                    val mediaItem = MediaItem.fromUri(uri)
+
+                    exoPlayer.run {
+                        setMediaItem(mediaItem)
+                        prepare()
+                    }
+                }
+            }
+
+            private fun updateMetadataFromTrack(track: Track) {
+                asyncLoadBitmap(track.bitmapUri)
+                metadataBuilder.apply {
+                    putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.title)
+                    putString(MediaMetadataCompat.METADATA_KEY_ALBUM, track.artist)
+                    putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.artist)
+                    putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
+                    mediaSession.setMetadata(this.build())
+                }
+            }
+
+            private fun asyncLoadBitmap(uri: String) {
+                Glide.with(applicationContext)
+                    .asBitmap()
+                    .placeholder(R.drawable.ic_baseline_image_24)
+                    .error(R.drawable.ic_baseline_error_24)
+                    .load(uri)
+                    .into(object : CustomTarget<Bitmap>() {
+                        override fun onResourceReady(
+                            resource: Bitmap,
+                            transition: Transition<in Bitmap>?
+                        ) {
+                            if (tracks.current.bitmapUri == uri) {
+                                metadataBuilder.apply {
+                                    putBitmap(MediaMetadataCompat.METADATA_KEY_ART, resource)
+                                    mediaSession.setMetadata(this.build())
+                                    refreshNotificationAndForegroundStatus(currentState)
+                                }
+                            }
+                        }
+
+                        override fun onLoadCleared(placeholder: Drawable?) = Unit
+                    })
+            }
+        }
+
+    private val audioFocusChangeListener: OnAudioFocusChangeListener =
+        OnAudioFocusChangeListener { focusChange ->
+            when (focusChange) {
+                AudioManager.AUDIOFOCUS_GAIN -> mediaSessionCallback.onPlay()
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mediaSessionCallback.onPause()
+                else -> mediaSessionCallback.onPause()
+            }
+        }
+
+    private val becomingNoisyReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            // Disconnecting headphones - stop playback
+            if ((AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent.action)) {
+                mediaSessionCallback.onPause()
+            }
+        }
+    }
+
+    private val exoPlayerListener: Player.Listener = object : Player.Listener {
+        override fun onTracksChanged(
+            trackGroups: TrackGroupArray,
+            trackSelections: TrackSelectionArray
+        ) = Unit
+
+        override fun onLoadingChanged(isLoading: Boolean) = Unit
+
+        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+            if (playWhenReady && playbackState == ExoPlayer.STATE_ENDED) {
+                mediaSessionCallback.onSkipToNext()
+            }
+        }
+
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) = Unit
+    }
+
     override fun onCreate() {
         (application as MyApplication).appComponent.inject(this)
 
@@ -171,249 +422,6 @@ class PlayerService : Service() {
         super.onDestroy()
         mediaSession.release()
         exoPlayer.release()
-    }
-
-    private val mediaSessionCallback: MediaSessionCompat.Callback =
-        object : MediaSessionCompat.Callback() {
-            private var currentUri: String? = null
-            var currentState = PlaybackStateCompat.STATE_STOPPED
-
-            override fun onPlay() {
-                if (!exoPlayer.playWhenReady) {
-                    startService(Intent(applicationContext, PlayerService::class.java))
-                    val track = tracks.current
-
-                    updateMetadataFromTrack(track)
-                    prepareToPlay(track.trackUri)
-
-                    if (!audioFocusRequested) {
-                        audioFocusRequested = true
-
-                        var audioFocusResult: Int = AudioManager.AUDIOFOCUS_REQUEST_FAILED
-                        @Suppress("DEPRECATION")
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            audioFocusRequest?.let { audioFocusRequest ->
-                                audioFocusResult = audioManager.requestAudioFocus(audioFocusRequest)
-                            }
-                        } else {
-                            audioFocusResult = audioManager.requestAudioFocus(
-                                audioFocusChangeListener,
-                                AudioManager.STREAM_MUSIC,
-                                AudioManager.AUDIOFOCUS_GAIN
-                            )
-                        }
-                        if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
-                    }
-                    mediaSession.isActive = true
-
-                    registerReceiver(
-                        becomingNoisyReceiver,
-                        IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-                    )
-                    exoPlayer.playWhenReady = true
-                    progressTracker?.resume()
-                }
-
-                // send new state
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        PlaybackStateCompat.STATE_PLAYING,
-                        exoPlayer.currentPosition,
-                        1f
-                    ).build()
-                )
-                currentState = PlaybackStateCompat.STATE_PLAYING
-                refreshNotificationAndForegroundStatus(currentState)
-                onChangeCurrentTrack()
-            }
-
-            override fun onSeekTo(pos: Long) {
-                super.onSeekTo(pos)
-                exoPlayer.seekTo(pos)
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        currentState,
-                        pos,
-                        1f
-                    ).build()
-                )
-                refreshNotificationAndForegroundStatus(currentState)
-            }
-
-            override fun onPause() {
-                if (exoPlayer.playWhenReady) {
-                    exoPlayer.playWhenReady = false
-                    unregisterReceiver(becomingNoisyReceiver)
-                }
-                progressTracker?.pause()
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        PlaybackStateCompat.STATE_PAUSED,
-                        exoPlayer.currentPosition,
-                        0f
-                    ).build()
-                )
-                currentState = PlaybackStateCompat.STATE_PAUSED
-                refreshNotificationAndForegroundStatus(currentState)
-            }
-
-            override fun onStop() {
-                progressTracker?.purgeHandler()
-                if (exoPlayer.playWhenReady) {
-                    exoPlayer.playWhenReady = false
-                    unregisterReceiver(becomingNoisyReceiver)
-                }
-
-                if (audioFocusRequested) {
-                    audioFocusRequested = false
-                    @Suppress("DEPRECATION")
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        audioFocusRequest?.let { audioFocusRequest ->
-                            audioManager.abandonAudioFocusRequest(audioFocusRequest)
-                        }
-                    } else {
-                        audioManager.abandonAudioFocus(audioFocusChangeListener)
-                    }
-                }
-                mediaSession.isActive = false
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        PlaybackStateCompat.STATE_STOPPED,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        0f
-                    ).build()
-                )
-                currentState = PlaybackStateCompat.STATE_STOPPED
-                refreshNotificationAndForegroundStatus(currentState)
-                stopSelf()
-            }
-
-            override fun onSkipToNext() {
-                val track = tracks.next
-
-                updateMetadataFromTrack(track)
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        PlaybackStateCompat.STATE_SKIPPING_TO_NEXT,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1f
-                    ).build()
-                )
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        currentState,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1f
-                    ).build()
-                )
-                refreshNotificationAndForegroundStatus(currentState)
-                prepareToPlay(track.trackUri)
-                onChangeCurrentTrack()
-            }
-
-            override fun onSkipToPrevious() {
-                val track = tracks.previous
-
-                updateMetadataFromTrack(track)
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1f
-                    ).build()
-                )
-                mediaSession.setPlaybackState(
-                    stateBuilder.setState(
-                        currentState,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1f
-                    ).build()
-                )
-                refreshNotificationAndForegroundStatus(currentState)
-                prepareToPlay(track.trackUri)
-                onChangeCurrentTrack()
-            }
-
-            private fun prepareToPlay(uri: String) {
-                if (uri != currentUri) {
-                    currentUri = uri
-                    val mediaItem = MediaItem.fromUri(uri)
-
-                    exoPlayer.run {
-                        setMediaItem(mediaItem)
-                        prepare()
-                    }
-                }
-            }
-
-            private fun updateMetadataFromTrack(track: Track) {
-                asyncLoadBitmap(track.bitmapUri)
-                metadataBuilder.apply {
-                    putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.title)
-                    putString(MediaMetadataCompat.METADATA_KEY_ALBUM, track.artist)
-                    putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.artist)
-                    putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
-                    mediaSession.setMetadata(this.build())
-                }
-            }
-
-            private fun asyncLoadBitmap(uri: String) {
-                Glide.with(applicationContext)
-                    .asBitmap()
-                    .placeholder(R.drawable.ic_baseline_image_24)
-                    .error(R.drawable.ic_baseline_error_24)
-                    .load(uri)
-                    .into(object : CustomTarget<Bitmap>() {
-                        override fun onResourceReady(
-                            resource: Bitmap,
-                            transition: Transition<in Bitmap>?
-                        ) {
-                            if (tracks.current.bitmapUri == uri) {
-                                metadataBuilder.apply {
-                                    putBitmap(MediaMetadataCompat.METADATA_KEY_ART, resource)
-                                    mediaSession.setMetadata(this.build())
-                                    refreshNotificationAndForegroundStatus(currentState)
-                                }
-                            }
-                        }
-
-                        override fun onLoadCleared(placeholder: Drawable?) = Unit
-                    })
-            }
-        }
-
-    private val audioFocusChangeListener: OnAudioFocusChangeListener =
-        OnAudioFocusChangeListener { focusChange ->
-            when (focusChange) {
-                AudioManager.AUDIOFOCUS_GAIN -> mediaSessionCallback.onPlay()
-                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mediaSessionCallback.onPause()
-                else -> mediaSessionCallback.onPause()
-            }
-        }
-    private val becomingNoisyReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            // Disconnecting headphones - stop playback
-            if ((AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent.action)) {
-                mediaSessionCallback.onPause()
-            }
-        }
-    }
-
-    private val exoPlayerListener: Player.Listener = object : Player.Listener {
-        override fun onTracksChanged(
-            trackGroups: TrackGroupArray,
-            trackSelections: TrackSelectionArray
-        ) = Unit
-
-        override fun onLoadingChanged(isLoading: Boolean) = Unit
-
-        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            if (playWhenReady && playbackState == ExoPlayer.STATE_ENDED) {
-                mediaSessionCallback.onSkipToNext()
-            }
-        }
-
-        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) = Unit
     }
 
     override fun onBind(intent: Intent): IBinder {
