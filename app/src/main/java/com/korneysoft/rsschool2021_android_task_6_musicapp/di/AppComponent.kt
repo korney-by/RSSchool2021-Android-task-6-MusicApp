@@ -17,6 +17,5 @@ interface AppComponent {
     }
 
     fun inject(activity: MainActivity)
-    fun inject(viewModel: ViewModel)
     fun inject(service: PlayerService)
 }

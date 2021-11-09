@@ -4,9 +4,9 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.method.ScrollingMovementMethod
-import android.view.View
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -30,8 +30,8 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var model: MainViewModel
-
-    private var playerControl: PlayerControl? = null
+    private val playerControl: PlayerControl
+        get() = model
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as MyApplication).appComponent.inject(this)
@@ -43,10 +43,6 @@ class MainActivity : AppCompatActivity() {
         // enable auto-scrolling for textLog
         binding.textLog.movementMethod = ScrollingMovementMethod()
 
-        if (model is PlayerControl) {
-            playerControl = model
-        }
-
         setListenersPlayerControl()
         setListenerSeekBar()
         registerObservers()
@@ -55,27 +51,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerObservers() {
-        model.playerEventLiveData.observe(this,
-            Observer {
-                it ?: return@Observer
+        model.playerEventLiveData.observe(this, {
+            it?.let {
                 playerStateApply(it)
-            })
+            }
+        })
 
-        model.currentTrackLiveData.observe(this,
-            Observer {
-                it ?: return@Observer
+        model.currentTrackLiveData.observe(this, {
+            it?.let {
                 currentTrack = it
                 toLog("Change track: ${it.title}")
                 showCurrentTrackInfo()
-            })
+            }
+        })
 
-        model.playbackPositionLiveData.observe(this,
-            Observer {
-                it ?: return@Observer
+        model.playbackPositionLiveData.observe(this, {
+            it?.let {
                 if (!isSeekBarTrackingTouch) {
                     showProgressBar(it)
                 }
-            })
+            }
+        })
     }
 
     private fun playerStateApply(@PlaybackStateCompat.State state: Int) {
@@ -130,23 +126,23 @@ class MainActivity : AppCompatActivity() {
     private fun setListenersPlayerControl() {
         binding.playerNext.setOnClickListener {
             toLog("Click Next button")
-            playerControl?.next()
+            playerControl.next()
         }
         binding.playerPrevious.setOnClickListener {
             toLog("Click Previous button")
-            playerControl?.previous()
+            playerControl.previous()
         }
         binding.playerPlay.setOnClickListener {
             toLog("Click Play button")
-            playerControl?.play()
+            playerControl.play()
         }
         binding.playerPause.setOnClickListener {
             toLog("Click Pause button")
-            playerControl?.pause()
+            playerControl.pause()
         }
         binding.playerStop.setOnClickListener {
             toLog("Click Stop button")
-            playerControl?.stop()
+            playerControl.stop()
         }
     }
 
@@ -167,7 +163,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onStopTrackingTouch(playSeekBar: SeekBar?) {
                 playSeekBar?.let {
-                    playerControl?.seekTo(it.progress.toLong())
+                    playerControl.seekTo(it.progress.toLong())
                     isSeekBarTrackingTouch = false
                 }
             }
@@ -175,17 +171,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showButtonPause() {
-        binding.playerPlay.visibility = View.GONE
-        binding.playerPause.visibility = View.VISIBLE
+        binding.playerPlay.isVisible = false
+        binding.playerPause.isVisible = true
     }
 
     private fun showButtonPlay() {
-        binding.playerPause.visibility = View.GONE
-        binding.playerPlay.visibility = View.VISIBLE
+        binding.playerPause.isVisible = false
+        binding.playerPlay.isVisible = true
     }
 
     private fun showButtonStop(value: Boolean) {
-        binding.playerStop.visibility = if (value) View.VISIBLE else View.GONE
+        binding.playerStop.isVisible = value
     }
 
     private fun prefatorySetSeekBarSettings() {

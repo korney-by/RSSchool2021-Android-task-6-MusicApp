@@ -71,10 +71,10 @@ class PlayerService : Service() {
         super.onCreate()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            @SuppressLint("WrongConstant") val notificationChannel = NotificationChannel(
+            val notificationChannel = NotificationChannel(
                 NOTIFICATION_DEFAULT_CHANNEL_ID,
                 getString(R.string.notification_channel_name),
-                NotificationManagerCompat.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_DEFAULT
             )
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(notificationChannel)
