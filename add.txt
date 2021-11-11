@@ -1,0 +1,19 @@
+подгрузка картинки в сервис
+override fun getCurrentLargeIcon(
+            player: Player,
+            callback: PlayerNotificationManager.BitmapCallback
+        ): Bitmap? {
+            Glide.with(context).asBitmap()
+                .load(mediaController.metadata.description.iconUri)
+                .into(object : CustomTarget<Bitmap>() {
+                    override fun onResourceReady(
+                        resource: Bitmap,
+                        transition: Transition<in Bitmap>?
+                    ) {
+                        callback.onBitmap(resource)
+                    }
+
+                    override fun onLoadCleared(placeholder: Drawable?) = Unit
+                })
+            return null
+        }
