@@ -43,7 +43,6 @@ class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
     override fun play() {
         Log.d(TAG, "play")
         postCommand(PlayerCommand.PLAY)
-
     }
 
     override fun pause() {

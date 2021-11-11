@@ -27,7 +27,6 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     val currentTrackLiveData: LiveData<Track?> = _currentTrackLiveData
 
     private var mediaController: MediaControllerCompat? = null
-    //private set
 
     private var playerServiceBinder: PlayerService.PlayerServiceBinder? = null
     private val callback by lazy { createCallbackService() }
@@ -117,6 +116,4 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     fun seekTo(position: Long) {
         mediaController?.transportControls?.seekTo(position)
     }
-
-
 }

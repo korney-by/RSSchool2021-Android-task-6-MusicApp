@@ -6,7 +6,6 @@ import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
 
-
 @Module
 class ServiceConnectionModule {
     @Singleton
@@ -15,4 +14,3 @@ class ServiceConnectionModule {
         return ServiceConnectionController(context)
     }
 }
-
