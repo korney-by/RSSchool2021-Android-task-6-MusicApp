@@ -1,60 +1,58 @@
 package com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel
 
 import android.util.Log
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
-import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
-import com.korneysoft.rsschool2021_android_task_6_musicapp.music_service.ServiceConnectionController
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
-import javax.inject.Singleton
 
 private const val TAG = "T6-MainViewModel"
 
-@Singleton
 class MainViewModel @Inject constructor() : ViewModel(), PlayerControl {
 
-    @Inject
-    lateinit var serviceConnectionController: ServiceConnectionController
+    private val _commandToPlayerFlow = MutableSharedFlow<PlayerCommand>()
+    val commandToPlayerFlow = _commandToPlayerFlow.asSharedFlow()
 
-    private val mediaController by lazy {
-        serviceConnectionController.mediaController
-    }
-    val currentTrackLiveData: LiveData<Track?> by lazy {
-        serviceConnectionController.currentTrackLiveData
-    }
-    val playerEventLiveData: LiveData<Int?> by lazy {
-        serviceConnectionController.eventLiveData
-    }
-    val playbackPositionLiveData: LiveData<Long?> by lazy {
-        serviceConnectionController.playbackPositionLiveData
-    }
+    private val _setPlaybackPositionFlow = MutableSharedFlow<Long>()
+    val setPlaybackPositionFlow = _setPlaybackPositionFlow.asSharedFlow()
 
     override fun seekTo(position: Long) {
-        mediaController?.transportControls?.seekTo(position)
+        viewModelScope.launch {
+            _setPlaybackPositionFlow.emit(position)
+        }
+    }
+
+    private fun postCommand(command: PlayerCommand) {
+        viewModelScope.launch {
+            _commandToPlayerFlow.emit(command)
+        }
     }
 
     override fun next() {
         Log.d(TAG, "next")
-        mediaController?.transportControls?.skipToNext()
+        postCommand(PlayerCommand.NEXT)
     }
 
     override fun previous() {
         Log.d(TAG, "previous")
-        mediaController?.transportControls?.skipToPrevious()
+        postCommand(PlayerCommand.PREVIOUS)
     }
 
     override fun play() {
         Log.d(TAG, "play")
-        mediaController?.transportControls?.play()
+        postCommand(PlayerCommand.PLAY)
+
     }
 
     override fun pause() {
         Log.d(TAG, "pause")
-        mediaController?.transportControls?.pause()
+        postCommand(PlayerCommand.PAUSE)
     }
 
     override fun stop() {
         Log.d(TAG, "stop")
-        mediaController?.transportControls?.stop()
+        postCommand(PlayerCommand.STOP)
     }
 }

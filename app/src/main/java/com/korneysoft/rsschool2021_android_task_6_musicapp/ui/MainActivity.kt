@@ -5,8 +5,10 @@ import android.os.Bundle
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.method.ScrollingMovementMethod
 import android.widget.SeekBar
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
@@ -16,9 +18,12 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.R
 import com.korneysoft.rsschool2021_android_task_6_musicapp.application.MyApplication
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
 import com.korneysoft.rsschool2021_android_task_6_musicapp.databinding.ActivityMainBinding
+import com.korneysoft.rsschool2021_android_task_6_musicapp.music_service.ServiceConnectionController
 import com.korneysoft.rsschool2021_android_task_6_musicapp.utils.msecToTime
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.MainViewModel
+import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.PlayerCommand
 import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.PlayerControl
+import kotlinx.coroutines.flow.collect
 import javax.inject.Inject
 
 class MainActivity : AppCompatActivity() {
@@ -27,10 +32,12 @@ class MainActivity : AppCompatActivity() {
     private var isSeekBarTrackingTouch = false
     private var currentTrack: Track? = null
 
-    @Inject
-    lateinit var model: MainViewModel
+    val model: MainViewModel by viewModels()
     private val playerControl: PlayerControl
         get() = model
+
+    @Inject
+    lateinit var connectionController: ServiceConnectionController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as MyApplication).appComponent.inject(this)
@@ -44,33 +51,55 @@ class MainActivity : AppCompatActivity() {
 
         setListenersPlayerControl()
         setListenerSeekBar()
-        registerObservers()
+        registerObserversStatePlayer()
+        lunchCollectPlaybackPosition()
+        lunchCollectCommandToPlayer()
         prefatorySetSeekBarSettings()
         showCurrentTrackInfo()
     }
 
-    private fun registerObservers() {
-        model.playerEventLiveData.observe(this, {
+    private fun lunchCollectPlaybackPosition() {
+        lifecycleScope.launchWhenStarted {
+            model.setPlaybackPositionFlow.collect {
+                connectionController.seekTo(it)
+            }
+        }
+    }
+
+    private fun lunchCollectCommandToPlayer() {
+        lifecycleScope.launchWhenStarted {
+            model.commandToPlayerFlow.collect {
+                applyCommandPlayer(it)
+            }
+        }
+    }
+
+    private fun registerObserversStatePlayer() {
+        connectionController.eventLiveData.observe(this, {
             it?.let {
                 playerStateApply(it)
             }
         })
 
-        model.currentTrackLiveData.observe(this, {
+        connectionController.currentTrackLiveData.observe(this, {
             it?.let {
                 currentTrack = it
-                toLog("Change track: ${it.title}")
+                toLog("Track: ${it.title}")
                 showCurrentTrackInfo()
             }
         })
 
-        model.playbackPositionLiveData.observe(this, {
+        connectionController.playbackPositionLiveData.observe(this, {
             it?.let {
                 if (!isSeekBarTrackingTouch) {
                     showProgressBar(it)
                 }
             }
         })
+    }
+
+    private fun applyCommandPlayer(command: PlayerCommand) {
+        connectionController.executeCommandPlayer(command)
     }
 
     private fun playerStateApply(@PlaybackStateCompat.State state: Int) {

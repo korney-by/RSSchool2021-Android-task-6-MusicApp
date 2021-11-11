@@ -45,6 +45,8 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
+    implementation 'androidx.fragment:fragment-ktx:1.3.6'
+
     // Dagger
     def daggerVersion = '2.39.1'
     implementation "com.google.dagger:dagger:$daggerVersion"

@@ -12,23 +12,22 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.korneysoft.rsschool2021_android_task_6_musicapp.data.Track
+import com.korneysoft.rsschool2021_android_task_6_musicapp.viewmodel.PlayerCommand
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 class ServiceConnectionController @Inject constructor(private val context: Context) {
 
     private val _eventLiveData = MutableLiveData(PlaybackStateCompat.STATE_NONE)
     val eventLiveData: LiveData<Int?> = _eventLiveData
 
-    private val _trackPlaybackPositionLiveData = MutableLiveData(0L)
+    private val _trackPlaybackPositionLiveData: MutableLiveData<Long?> = MutableLiveData(null)
     val playbackPositionLiveData: LiveData<Long?> = _trackPlaybackPositionLiveData
 
     private val _currentTrackLiveData: MutableLiveData<Track?> = MutableLiveData(null)
     val currentTrackLiveData: LiveData<Track?> = _currentTrackLiveData
 
-    var mediaController: MediaControllerCompat? = null
-        private set
+    private var mediaController: MediaControllerCompat? = null
+    //private set
 
     private var playerServiceBinder: PlayerService.PlayerServiceBinder? = null
     private val callback by lazy { createCallbackService() }
@@ -97,4 +96,27 @@ class ServiceConnectionController @Inject constructor(private val context: Conte
     private fun onChangeCurrentTrack(track: Track) {
         _currentTrackLiveData.value = track
     }
+
+    fun executeCommandPlayer(command: PlayerCommand) {
+        mediaController.apply {
+            when (command) {
+                PlayerCommand.NEXT -> mediaController?.transportControls?.skipToNext()
+                PlayerCommand.PREVIOUS -> mediaController?.transportControls?.skipToPrevious()
+                PlayerCommand.PLAY -> {
+                    if (_eventLiveData.value != PlaybackStateCompat.STATE_PLAYING) {
+                        mediaController?.transportControls?.play()
+                    }
+                }
+                PlayerCommand.PAUSE -> mediaController?.transportControls?.pause()
+                PlayerCommand.STOP -> mediaController?.transportControls?.stop()
+                PlayerCommand.NONE -> Unit
+            }
+        }
+    }
+
+    fun seekTo(position: Long) {
+        mediaController?.transportControls?.seekTo(position)
+    }
+
+
 }

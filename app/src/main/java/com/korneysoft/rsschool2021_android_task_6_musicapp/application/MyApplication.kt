@@ -6,6 +6,6 @@ import com.korneysoft.rsschool2021_android_task_6_musicapp.di.DaggerAppComponent
 
 class MyApplication : Application() {
     val appComponent: AppComponent by lazy {
-        DaggerAppComponent.factory().create(applicationContext)
+        DaggerAppComponent.factory().create(this)
     }
 }
